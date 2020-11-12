@@ -1,4 +1,23 @@
 /* ============================================================= */
+/* ========================    EXTRA   ========================= */
+
+export function hex(n) {
+    return n.toString(16)
+}
+
+export function random_float(a, b) {
+    if (Array.isArray(a)) {
+        return a[Math.floor(Math.random() * a.length)]
+    } else {
+        return a + Math.random() * (b - a)
+    }
+}
+
+export function random(a, b) {
+    return Math.round(a + Math.random() * (b - a))
+}
+
+/* ============================================================= */
 /* ========================    SYSTEM   ======================== */
 
 /**
@@ -9,8 +28,10 @@
  * @ref https://pico-8.fandom.com/wiki/Time
  */
 export function time() {
-
+    return Date.now() - vm.boot_time
 }
+
+export const t = time
 
 /* ============================================================= */
 /* ========================    MEMORY   ======================== */
@@ -25,7 +46,7 @@ export function time() {
  * @ref https://pico-8.fandom.com/wiki/Cstore
  */
 export function cstore(dest_addr, source_addr, len) {
-
+    throw new Error("Not implemented")
 }
 
 /**
@@ -38,7 +59,12 @@ export function cstore(dest_addr, source_addr, len) {
  * @ref https://pico-8.fandom.com/wiki/Memcpy
  */
 export function memcpy(dest_addr, source_addr, len) {
+    let dest = vm.memory.subarray(dest_addr, dest_addr + len)
+    let src = vm.memory.subarray(source_addr, source_addr + len)
 
+    for (let i = 0; i < len; i++) {
+        dest[i] = src[i]
+    }
 }
 
 /**
@@ -51,7 +77,7 @@ export function memcpy(dest_addr, source_addr, len) {
  * @ref https://pico-8.fandom.com/wiki/Memset
  */
 export function memset(dest_addr, val, len) {
-
+    vm.memory.subarray(dest_addr, dest_addr + len).fill(val)
 }
 
 /**
@@ -62,7 +88,7 @@ export function memset(dest_addr, val, len) {
  * @ref https://pico-8.fandom.com/wiki/Peek
  */
 export function peek(addr) {
-
+    return vm.memory[addr]
 }
 
 /**
@@ -74,7 +100,7 @@ export function peek(addr) {
  * @ref https://pico-8.fandom.com/wiki/Poke
  */
 export function poke(addr, val) {
-
+    vm.memory[addr] = val
 }
 
 /**
@@ -87,7 +113,7 @@ export function poke(addr, val) {
  * @ref https://pico-8.fandom.com/wiki/Reload
  */
 export function reload(dest_addr, source_addr, len) {
-
+    throw new Error("Not implemented")
 }
 
 /* ============================================================= */
@@ -103,7 +129,7 @@ export function reload(dest_addr, source_addr, len) {
  * @ref https://pico-8.fandom.com/wiki/Music
  */
 export function music(n, fade_len = 0, channel_mask = 0) {
-
+    // TODO
 }
 
 /**
@@ -117,7 +143,7 @@ export function music(n, fade_len = 0, channel_mask = 0) {
  * @ref https://pico-8.fandom.com/wiki/Sfx
  */
 export function sfx(n, channel = -1, offset = 0, length = null) {
-
+    // TODO
 }
 
 /* ============================================================= */
@@ -131,7 +157,7 @@ export function sfx(n, channel = -1, offset = 0, length = null) {
  * @ref https://pico-8.fandom.com/wiki/Btn
  */
 export function btn(n, player = 1) {
-
+    // TODO
 }
 
 /**
@@ -143,7 +169,7 @@ export function btn(n, player = 1) {
  * @ref https://pico-8.fandom.com/wiki/Btnp
  */
 export function btnp(i, player = 1) {
-
+    // TODO
 }
 
 
@@ -158,7 +184,7 @@ export function btnp(i, player = 1) {
  * @ref https://pico-8.fandom.com/wiki/Flip
  */
 export function flip() {
-
+    // TODO
 }
 
 /**
@@ -175,7 +201,7 @@ export function flip() {
  * @ref https://pico-8.fandom.com/wiki/Map
  */
 export function map(cel_x, cel_y, sx, sy, cel_w, cel_h, layer = 0) {
-
+    // TODO
 }
 /**
  * Gets the sprite number assigned to a cell on the map.
@@ -186,7 +212,7 @@ export function map(cel_x, cel_y, sx, sy, cel_w, cel_h, layer = 0) {
  * @ref https://pico-8.fandom.com/wiki/Mget
  */
 export function mget(x, y) {
-
+    // TODO
 }
 /**
  * Sets a cell on the map to a new sprite number.
@@ -198,7 +224,7 @@ export function mget(x, y) {
  * @ref https://pico-8.fandom.com/wiki/Mset
  */
 export function mset(x, y, sprite) {
-
+    // TODO
 }
 
 
@@ -211,35 +237,89 @@ export function mset(x, y, sprite) {
  * @ref https://pico-8.fandom.com/wiki/Camera
  */
 export function camera(x = 0, y = 0) {
-
+    // TODO
 }
 
 /**
  * Draws a circle shape, without fill.
  * 
- * @param {number} x The x coordinate of the center of the circle.
- * @param {number} y The y coordinate of the center of the circle.
+ * @param {number} xc The x coordinate of the center of the circle.
+ * @param {number} yc The y coordinate of the center of the circle.
  * @param {number} r The radius of the circle, in pixels. If omitted, the radius will be 4. 
  * @param {number} color The color of the circle and fill. If omitted, the color from the draw state is used. 
  * 
  * @ref https://pico-8.fandom.com/wiki/Circ
  */
-export function circ(x, y, r = 4, color = null) {
+export function circ(xc, yc, r = 4, color = null) {
+    r = r >> 0
 
+    // Bresenham’s circle
+    let x = 0
+    let y = r
+    let d = 3 - 2 * r
+
+    pset(xc, yc + y, color)
+    pset(xc, yc - y, color)
+    pset(xc + y, yc, color)
+    pset(xc - y, yc, color)
+
+    while (y >= x) {
+        x += 1
+
+        if (d > 0) {
+            y -= 1
+            d = d + 4 * (x - y) + 10
+        } else {
+            d = d + 4 * x + 6
+        }
+
+        pset(xc + x, yc + y, color)
+        pset(xc - x, yc + y, color)
+        pset(xc + x, yc - y, color)
+        pset(xc - x, yc - y, color)
+        pset(xc + y, yc + x, color)
+        pset(xc - y, yc + x, color)
+        pset(xc + y, yc - x, color)
+        pset(xc - y, yc - x, color)
+    }
 }
 
 /**
  * Draws a filled-in circle shape. 
  * 
- * @param {number} x The x coordinate of the center of the circle.
- * @param {number} y The y coordinate of the center of the circle.
+ * @param {number} xc The x coordinate of the center of the circle.
+ * @param {number} yc The y coordinate of the center of the circle.
  * @param {number} r The radius of the circle, in pixels. If omitted, the radius will be 4. 
  * @param {number} color The color of the circle and fill. If omitted, the color from the draw state is used. 
  * 
  * @ref https://pico-8.fandom.com/wiki/Circfill
  */
-export function circfill(x, y, r = 4, color = null) {
+export function circfill(xc, yc, r = 4, color = null) {
+    r = r >> 0
 
+    // Bresenham’s circle with a twist
+    let x = 0
+    let y = r
+    let d = 3 - 2 * r
+
+    line(xc, yc + y, xc, yc - y, color)
+    line(xc + y, yc, xc - y, yc, color)
+
+    while (y >= x) {
+        x += 1
+
+        if (d > 0) {
+            y -= 1
+            d = d + 4 * (x - y) + 10
+        } else {
+            d = d + 4 * x + 6
+        }
+
+        line(xc + x, yc + y, xc - x, yc + y, color)
+        line(xc + x, yc - y, xc - x, yc - y, color)
+        line(xc + y, yc + x, xc - y, yc + x, color)
+        line(xc + y, yc - x, xc - y, yc - x, color)
+    }
 }
 
 /**
@@ -265,7 +345,7 @@ export function clip(x = null, y = null, w = null, h = null) {
  * @ref https://pico-8.fandom.com/wiki/Cls
  */
 export function cls(color = 0) {
-
+    vm.memory.subarray(0x6000, 0x8000).fill(0)
 }
 
 /**
@@ -341,7 +421,40 @@ export function fset(n, f = null, v = null) {
  * @ref https://pico-8.fandom.com/wiki/Line
  */
 export function line(x0, y0, x1, y1, color) {
+    // Bresenham’s Line Algorithm
+    let dx = Math.abs(x1 - x0)
+    let dy = Math.abs(y1 - y0)
+    let x = x0
+    let y = y0
 
+    let sx = (x0 <= x1) ? 1 : -1
+    let sy = (y0 <= y1) ? 1 : -1
+
+    if (dx > dy) {
+        let err = dx / 2.0
+        while (x != x1) {
+            pset(x, y, color)
+            err -= dy
+            if (err < 0) {
+                y += sy
+                err += dx
+            }
+            x += sx
+        }
+    } else {
+        let err = dy / 2.0
+        while (y != y1) {
+            pset(x, y, color)
+            err -= dx
+            if (err < 0) {
+                x += sx
+                err += dy
+            }
+            y += sy
+        }
+    }
+
+    pset(x1, y1, color)
 }
 
 /**
@@ -378,7 +491,10 @@ export function palt(color, transparent) {
  * @ref https://pico-8.fandom.com/wiki/Pget
  */
 export function pget(x, y) {
-
+    const addr = 0x6000 + Math.floor(x / 2) + y * 64
+    return (x % 2 == 0)
+        ? vm.memory[addr] >> 4  // high
+        : vm.memory[addr] & 0xF  // low
 }
 
 /**
@@ -405,37 +521,61 @@ export function print(str, x = null, y = null, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Pset
  */
 export function pset(x, y, color = null) {
+    if (color === null) {
+        color = 6
+    }
 
+    const addr = 0x6000 + Math.floor(x / 2) + y * 64
+    const current = vm.memory[addr]
+
+    vm.memory[addr] = (x % 2 == 0)
+        ? (color << 4) ^ (current & 0xF) // high
+        : (current & 0xF0) ^ color  // low
+
+    // console.log(`Set ${x}, ${y} at 0x${hex(addr)} with value : ${hex(vm.memory[addr])}`)
 }
 
 /**
-    * Draws an empty rectangle shape.
+ * Draws an empty rectangle shape.
  * 
- * @param {number} x0 
- * @param {number} y0 
- * @param {number} x1 
- * @param {number} y1 
- * @param {number} color 
+ * @param {number} x0 The x coordinate of the upper left corner.
+ * @param {number} y0 The y coordinate of the upper left corner.
+ * @param {number} x1 The x coordinate of the lower right corner.
+ * @param {number} y1 The y coordinate of the lower right corner.
+ * @param {number} color The color of the rectangle border. If omitted, the color from the draw state is used.
  * 
  * @ref https://pico-8.fandom.com/wiki/Rect
  */
 export function rect(x0, y0, x1, y1, color = null) {
-
+    // Horizontal lines
+    for (let x = x0; x < x1; x++) {
+        pset(x, y0, color)
+        pset(x, y1 - 1, color)
+    }
+    // Vertical lines
+    for (let y = y0; y < y1; y++) {
+        pset(x0, y, color)
+        pset(x1 - 1, y, color)
+    }
 }
 
 /**
  * Draws a filled-in rectangle shape.
  * 
- * @param {number} x0 
- * @param {number} y0 
- * @param {number} x1 
- * @param {number} y1 
- * @param {number} color 
+ * @param {number} x0 The x coordinate of the upper left corner.
+ * @param {number} y0 The y coordinate of the upper left corner.
+ * @param {number} x1 The x coordinate of the lower right corner.
+ * @param {number} y1 The y coordinate of the lower right corner.
+ * @param {number} color The color of the rectangle border. If omitted, the color from the draw state is used.
  * 
  * @ref https://pico-8.fandom.com/wiki/Rectfill
  */
 export function rectfill(x0, y0, x1, y1, color = null) {
-
+    for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+            pset(x, y, color)
+        }
+    }
 }
 
 /**

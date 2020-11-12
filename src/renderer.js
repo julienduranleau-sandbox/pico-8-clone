@@ -45,8 +45,8 @@ function create_texture(pixels = null) {
         width, height, border, srcFormat, srcType,
         pixels)
 
-    // gl.NEAREST is also allowed, instead of gl.LINEAR, as neither mipmap.
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     // Prevents s-coordinate wrapping (repeating).
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     // Prevents t-coordinate wrapping (repeating).
@@ -116,7 +116,7 @@ async function compileShaderFile(file, type) {
     return shader
 }
 
-export function render(pixels) {
+export function render(pixels, palette) {
     gl.viewport(0, 0, glCanvas.width, glCanvas.height)
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clear(gl.COLOR_BUFFER_BIT)
@@ -125,6 +125,9 @@ export function render(pixels) {
 
     const uScale = gl.getUniformLocation(shaderProgram, 'scale')
     gl.uniform2fv(uScale, [1.0, glCanvas.width / glCanvas.height])
+
+    const uPalette = gl.getUniformLocation(shaderProgram, 'palette')
+    gl.uniform3fv(uPalette, palette)
 
     let texture = create_texture(pixels)
     const uTex = gl.getUniformLocation(shaderProgram, 'tex')
