@@ -1,11 +1,16 @@
-attribute vec2 position;
-// attribute uint pixels;
+#version 300 es
+
+in vec2 position;
 
 uniform vec2 scale;
 
-varying highp vec2 vTextureCoord;
+out highp vec2 texPosition;
 
 void main() {
-    vTextureCoord = vec2(0.0, 0.0); // TODO: Send dynamic position (remember 2 pixels per byte)
+    float x = (position.x + 1.0) / 2.0;
+    float y = (position.y + 1.0) / 2.0;
+
+    texPosition = vec2(x, y);
+
     gl_Position = vec4(position * scale, 0.0, 1.0);
 }

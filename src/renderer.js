@@ -2,7 +2,6 @@ let gl = null
 let glCanvas = null
 let shaderProgram = null
 let plane = null
-let texture = null
 
 function create_plane() {
     const vertices = new Float32Array([
@@ -59,7 +58,7 @@ function create_texture(pixels = null) {
 export async function init(canvas) {
     glCanvas = canvas
 
-    gl = glCanvas.getContext('webgl', {
+    gl = glCanvas.getContext('webgl2', {
         antialias: false,
         depth: false,
         alpha: false,
@@ -78,7 +77,6 @@ export async function init(canvas) {
 
     shaderProgram = await buildShaderProgram(shaders)
 
-    texture = create_texture()
     plane = create_plane()
 }
 
@@ -128,7 +126,7 @@ export function render(pixels) {
     const uScale = gl.getUniformLocation(shaderProgram, 'scale')
     gl.uniform2fv(uScale, [1.0, glCanvas.width / glCanvas.height])
 
-    texture = create_texture(pixels)
+    let texture = create_texture(pixels)
     const uTex = gl.getUniformLocation(shaderProgram, 'tex')
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);

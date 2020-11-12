@@ -21,7 +21,6 @@ import * as renderer from './renderer.js'
 */
 const memory = init_memory()
 const canvas = document.createElement("canvas")
-const img_data = new ImageData(canvas.width, canvas.height)
 
 canvas.width = 128
 canvas.height = 128

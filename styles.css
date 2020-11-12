@@ -6,3 +6,8 @@ body {
     justify-content: center;
     align-items: center;
 }
+
+canvas {
+    width: 512px;
+    image-rendering: crisp-edges;
+}
