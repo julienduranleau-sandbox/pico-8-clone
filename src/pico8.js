@@ -1,4 +1,5 @@
-import * as api from "./api.js"
+import * as api from './api.js'
+import * as renderer from './renderer.js'
 
 // https://www.lexaloffle.com/pico-8.php?page=manual
 
@@ -20,7 +21,6 @@ import * as api from "./api.js"
 */
 const memory = init_memory()
 const canvas = document.createElement("canvas")
-const ctx = canvas.getContext("2d")
 const img_data = new ImageData(canvas.width, canvas.height)
 
 canvas.width = 128
@@ -41,16 +41,19 @@ function boot(container = null) {
 
     container.appendChild(canvas)
 
-    if (window._init instanceof Function) {
-        window._init()
-    }
+    renderer.init(canvas).then(() => {
+        if (window._init instanceof Function) {
+            window._init()
+        }
 
-    game_loop()
+        game_loop()
+    })
 }
 
 function render() {
-    img_data.data.set(vm.memory.slice(0x6000))
-    ctx.putImageData(img_data, 0, 0)
+    renderer.render()
+    // img_data.data.set(vm.memory.slice(0x6000))
+    // ctx.putImageData(img_data, 0, 0)
 }
 
 function game_loop() {
