@@ -1,5 +1,9 @@
 import * as api from "./api.js"
 
+// https://www.lexaloffle.com/pico-8.php?page=manual
+
+// https://pico-8.fandom.com/wiki/Palette
+
 /*
 0x0 	0x0fff 	Sprite sheet(0 - 127)
 0x1000 	0x1fff 	Sprite sheet(128 - 255) / Map(rows 32 - 63)(shared)

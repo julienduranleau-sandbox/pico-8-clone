@@ -1,3 +1,207 @@
+/* ============================================================= */
+/* ========================    SYSTEM   ======================== */
+
+/**
+ * Returns the amount of time since PICO-8 was last started, as a fractional number of seconds.
+ * 
+ * @param {number}
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Time
+ */
+export function time() {
+
+}
+
+/* ============================================================= */
+/* ========================    MEMORY   ======================== */
+
+/**
+ * Store a region of memory in the cartridge file, or another cartridge file.
+ * 
+ * @param {number} dest_addr The address of the first byte of the destination.
+ * @param {number} source_addr The address of the first byte in memory to copy.
+ * @param {number} len The length of the memory region to copy, as a number of bytes.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Cstore
+ */
+export function cstore(dest_addr, source_addr, len) {
+
+}
+
+/**
+ * Copies a region of memory to another location in memory.
+ * 
+ * @param {number} dest_addr The address of the first byte of the destination.
+ * @param {number} source_addr The address of the first byte of the memory to copy.
+ * @param {number} len The length of the memory region to copy, as a number of bytes.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Memcpy
+ */
+export function memcpy(dest_addr, source_addr, len) {
+
+}
+
+/**
+ * Writes a byte value to every address in a region of memory.
+ * 
+ * @param {number} dest_addr The address of the first memory location to write.
+ * @param {number} val The byte value to write.
+ * @param {number} len The length of the region of memory to write, as a number of bytes.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Memset
+ */
+export function memset(dest_addr, val, len) {
+
+}
+
+/**
+ * Reads a byte from a memory location.
+ * 
+ * @param {number} addr The address of the memory location.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Peek
+ */
+export function peek(addr) {
+
+}
+
+/**
+ * Writes a byte to a memory location.
+ * 
+ * @param {number} addr The address of the memory location.
+ * @param {number} val The byte value.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Poke
+ */
+export function poke(addr, val) {
+
+}
+
+/**
+ * Loads a region of data from the cartridge, or from another cartridge, into memory.
+ * 
+ * @param {number} dest_addr The address of the first byte of the destination in memory.
+ * @param {number} source_addr The address of the first byte in the cartridge data. 
+ * @param {number} len The length of the memory region to copy, as a number of bytes. 
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Reload
+ */
+export function reload(dest_addr, source_addr, len) {
+
+}
+
+/* ============================================================= */
+/* ========================    AUDIO   ========================= */
+
+/**
+ * Plays a music pattern, or stops playing.
+ * 
+ * @param {number} n The pattern number to start playing (0-63), or -1 to stop playing music.
+ * @param {number} fade_len If not 0, fade in (or out) the music volume over a duration, given as a number of milliseconds.
+ * @param {number} channel_mask A bitfield indicating which of the four sound channels should be reserved for music. The default is 0 (no channels reserved).
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Music
+ */
+export function music(n, fade_len = 0, channel_mask = 0) {
+
+}
+
+/**
+ * Plays a sound effect. 
+ * 
+ * @param {number} n The number of the sound effect to play (0-63), -1 to stop playing sound on the given channel, or -2 to release the sound of the given channel from looping.
+ * @param {number} channel The channel to use for the sound effect (0-3). The default is -1, which chooses an available channel automatically. Can be -2 to stop playing the given sound effect on any channels it plays on.
+ * @param {number} offset The note position in the sound effect to start playing (0-31). The default is 0 (the beginning).
+ * @param {number} length The number of notes in the sound effect to play (0-31). The default is to play the entire sound effect.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Sfx
+ */
+export function sfx(n, channel = -1, offset = 0, length = null) {
+
+}
+
+/* ============================================================= */
+/* ========================    INPUT   ========================= */
+/**
+ * Tests if a button is being pressed at this moment.
+ * 
+ * @param {number} n The button number.
+ * @param {number} player The player number.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Btn
+ */
+export function btn(n, player = 1) {
+
+}
+
+/**
+ * Tests if a button has just been pressed, with keyboard-style repeating.
+ * 
+ * @param {number} n The button number.
+ * @param {number} player The player number.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Btnp
+ */
+export function btnp(i, player = 1) {
+
+}
+
+
+
+
+/* ============================================================= */
+/* ========================   GRAPHICS  ======================== */
+
+/**
+ * Copies the graphics buffer to the screen, then synchronizes to the next frame.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Flip
+ */
+export function flip() {
+
+}
+
+/**
+ * Draws a portion of the map to the graphics buffer.
+ * 
+ * @param {number} cel_x The column location of the map cell in the upper left corner of the region to draw, where 0 is the leftmost column.
+ * @param {number} cel_y The row location of the map cell in the upper left corner of the region to draw, where 0 is the topmost row.
+ * @param {number} sx The x coordinate of the screen to place the upper left corner.
+ * @param {number} sy The y coordinate of the screen to place the upper left corner.
+ * @param {number} cel_w The number of map cells wide in the region to draw.
+ * @param {number} cel_h The number of map cells tall in the region to draw.
+ * @param {number} layer If specified, only draw sprites that have flags set for every bit in this value (a bitfield). The default is 0 (draw all sprites).
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Map
+ */
+export function map(cel_x, cel_y, sx, sy, cel_w, cel_h, layer = 0) {
+
+}
+/**
+ * Gets the sprite number assigned to a cell on the map.
+ * 
+ * @param {number} x The column (x) coordinate of the cell.
+ * @param {number} y The row (y) coordinate of the cell.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Mget
+ */
+export function mget(x, y) {
+
+}
+/**
+ * Sets a cell on the map to a new sprite number.
+ * 
+ * @param {number} x The column (x) coordinate of the cell.
+ * @param {number} y The row (y) coordinate of the cell.
+ * @param {number} sprite The new sprite number to store.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Mset
+ */
+export function mset(x, y, sprite) {
+
+}
+
+
 /**
  * Sets the camera offset in the draw state. 
  * 
