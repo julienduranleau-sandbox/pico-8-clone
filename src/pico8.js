@@ -27,7 +27,7 @@ function scale(n) {
     canvas.style.height = canvas.height * n + "px"
 }
 
-function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = null) {
+async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = null) {
     if (!container) {
         container = document.body
     }
@@ -40,6 +40,7 @@ function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = n
         memory: init_memory(),
         palette: init_palette(),
         boot_time: Date.now(),
+        font: await init_font(),
     }
 
     for (let key in api) {
@@ -55,6 +56,11 @@ function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = n
 
         game_loop()
     })
+}
+
+function init_font() {
+    const font_img = new Image()
+    font_img.src = "font.png"
 }
 
 function game_loop() {
