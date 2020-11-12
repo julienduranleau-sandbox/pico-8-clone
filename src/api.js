@@ -409,7 +409,7 @@ export function pset(x, y, color = null) {
 }
 
 /**
-  * Draws an empty rectangle shape.
+    * Draws an empty rectangle shape.
  * 
  * @param {number} x0 
  * @param {number} y0 

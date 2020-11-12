@@ -18,17 +18,65 @@ import * as api from "./api.js"
 0x5f80 	0x5fff 	GPIO pins(128 bytes)
 0x6000 	0x7fff 	Screen data(8k) 
 */
-const memory = new Array(0x8000).fill(0)
+const memory = init_memory()
+const canvas = document.createElement("canvas")
+const ctx = canvas.getContext("2d")
+const img_data = new ImageData(canvas.width, canvas.height)
 
-function boot() {
-    define_globals()
+canvas.width = 128
+canvas.height = 128
+
+function boot(container = null) {
+    if (!container) {
+        container = document.body
+    }
+
+    window.vm = {
+        memory
+    }
+
+    for (let key in api) {
+        window[key] = api[key]
+    }
+
+    container.appendChild(canvas)
+
+    if (window._init instanceof Function) {
+        window._init()
+    }
+
+    game_loop()
 }
 
-function define_globals() {
+function render() {
+    img_data.data.set(vm.memory.slice(0x6000))
+    ctx.putImageData(img_data, 0, 0)
+}
 
+function game_loop() {
+    if (window._update instanceof Function) {
+        window._update()
+    }
+
+    if (window._draw instanceof Function) {
+        window._draw()
+    }
+
+    render()
+
+    requestAnimationFrame(game_loop)
+}
+
+function init_memory() {
+    const m = new Uint8Array(0x8000).fill(0)
+
+    for (let i = 0x6000; i < 0x8000; i++) {
+        m[i] = 255
+    }
+
+    return m
 }
 
 export default {
-    memory,
     boot,
 }
