@@ -50,12 +50,6 @@ function boot(container = null) {
     })
 }
 
-function render() {
-    renderer.render()
-    // img_data.data.set(vm.memory.slice(0x6000))
-    // ctx.putImageData(img_data, 0, 0)
-}
-
 function game_loop() {
     if (window._update instanceof Function) {
         window._update()
@@ -65,7 +59,7 @@ function game_loop() {
         window._draw()
     }
 
-    render()
+    renderer.render(vm.memory.slice(0x6000))
 
     requestAnimationFrame(game_loop)
 }
@@ -74,7 +68,7 @@ function init_memory() {
     const m = new Uint8Array(0x8000).fill(0)
 
     for (let i = 0x6000; i < 0x8000; i++) {
-        m[i] = 255
+        m[i] = Math.floor(Math.random() * 255)
     }
 
     return m

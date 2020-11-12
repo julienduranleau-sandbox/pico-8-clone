@@ -1,36 +1,64 @@
 let gl = null
 let glCanvas = null
 let shaderProgram = null
+let plane = null
+let texture = null
 
-// Aspect ratio and coordinate system
-// details
+function create_plane() {
+    const vertices = new Float32Array([
+        -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, // top right triangle
+        -1.0, 1.0, 1.0, -1.0, -1.0, -1.0 // bottom left triangle
+    ])
 
-let aspectRatio
-let currentRotation = [0, 1]
-let currentScale = [1.0, 1.0]
+    const vertexNumComponents = 2
 
-// Vertex information
+    const vertexCount = vertices.length / vertexNumComponents
 
-let vertexArray
-let vertexBuffer
-let vertexNumComponents
-let vertexCount
+    const vertexBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
-// Rendering data shared with the
-// scalers.
+    return {
+        vertices,
+        vertexNumComponents,
+        vertexCount,
+        vertexBuffer,
+    }
+}
 
-let uScalingFactor
-let uGlobalColor
-let uRotationVector
-let aVertexPosition
+function create_texture(pixels = null) {
+    const texture = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, texture)
 
-// Animation timing
+    const level = 0
+    const internalFormat = gl.LUMINANCE
+    const width = glCanvas.width / 2 /* 2 pixels per uint */
+    const height = glCanvas.height
+    const border = 0
+    const srcFormat = internalFormat
+    const srcType = gl.UNSIGNED_BYTE
 
-let previousTime = 0.0
-let degreesPerSecond = 90.0
+    if (pixels === null) {
+        pixels = new Uint8Array(width * height).fill(0)
+    }
+
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+        width, height, border, srcFormat, srcType,
+        pixels)
+
+    // gl.NEAREST is also allowed, instead of gl.LINEAR, as neither mipmap.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    // Prevents s-coordinate wrapping (repeating).
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    // Prevents t-coordinate wrapping (repeating).
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture
+}
 
 export async function init(canvas) {
     glCanvas = canvas
+
     gl = glCanvas.getContext('webgl', {
         antialias: false,
         depth: false,
@@ -50,28 +78,15 @@ export async function init(canvas) {
 
     shaderProgram = await buildShaderProgram(shaders)
 
-    aspectRatio = glCanvas.width / glCanvas.height
-    currentScale = [1.0, aspectRatio]
-
-    vertexArray = new Float32Array([
-        -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, // top right triangle
-        -1.0, 1.0, 1.0, -1.0, -1.0, -1.0 // bottom left triangle
-    ])
-
-    vertexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW)
-
-    vertexNumComponents = 2
-    vertexCount = vertexArray.length / vertexNumComponents
+    texture = create_texture()
+    plane = create_plane()
 }
 
 async function buildShaderProgram(shaders) {
-    let filePromises = []
-    let program = gl.createProgram()
+    const program = gl.createProgram()
 
-    for (let shaderInfo of shaders) {
-        let shader = await compileShader(shaderInfo.file, shaderInfo.type)
+    for (const shaderInfo of shaders) {
+        let shader = await compileShaderFile(shaderInfo.file, shaderInfo.type)
 
         if (shader) {
             gl.attachShader(program, shader)
@@ -88,9 +103,9 @@ async function buildShaderProgram(shaders) {
     return program
 }
 
-async function compileShader(file, type) {
-    let code = await fetch(file).then(resp => resp.text()).then(data => data)
-    let shader = gl.createShader(type)
+async function compileShaderFile(file, type) {
+    const code = await fetch(file).then(resp => resp.text()).then(data => data)
+    const shader = gl.createShader(type)
 
     gl.shaderSource(shader, code)
     gl.compileShader(shader)
@@ -99,27 +114,30 @@ async function compileShader(file, type) {
         console.log(`Error compiling ${type === gl.VERTEX_SHADER ? 'vertex' : 'fragment'} shader:`)
         console.log(gl.getShaderInfoLog(shader))
     }
+
     return shader
 }
 
-export function render() {
+export function render(pixels) {
     gl.viewport(0, 0, glCanvas.width, glCanvas.height)
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clear(gl.COLOR_BUFFER_BIT)
 
     gl.useProgram(shaderProgram)
 
-    uScalingFactor = gl.getUniformLocation(shaderProgram, 'uScalingFactor')
-    uGlobalColor = gl.getUniformLocation(shaderProgram, 'uGlobalColor')
+    const uScale = gl.getUniformLocation(shaderProgram, 'scale')
+    gl.uniform2fv(uScale, [1.0, glCanvas.width / glCanvas.height])
 
-    gl.uniform2fv(uScalingFactor, currentScale)
-    gl.uniform4fv(uGlobalColor, [0.5, 0.7, 0.2, 1.0])
+    texture = create_texture(pixels)
+    const uTex = gl.getUniformLocation(shaderProgram, 'tex')
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uTex, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    const aPosition = gl.getAttribLocation(shaderProgram, 'position')
+    gl.bindBuffer(gl.ARRAY_BUFFER, plane.vertexBuffer)
+    gl.enableVertexAttribArray(aPosition)
+    gl.vertexAttribPointer(aPosition, plane.vertexNumComponents, gl.FLOAT, false, 0, 0)
 
-    aVertexPosition = gl.getAttribLocation(shaderProgram, 'aVertexPosition')
-    gl.enableVertexAttribArray(aVertexPosition)
-    gl.vertexAttribPointer(aVertexPosition, vertexNumComponents, gl.FLOAT, false, 0, 0)
-
-    gl.drawArrays(gl.TRIANGLES, 0, vertexCount)
+    gl.drawArrays(gl.TRIANGLES, 0, plane.vertexCount)
 }

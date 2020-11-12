@@ -2,8 +2,13 @@
 precision highp float;
 #endif
 
-uniform vec4 uGlobalColor;
+varying highp vec2 vTextureCoord;
+
+uniform sampler2D tex;
 
 void main() {
-    gl_FragColor = uGlobalColor;
+    // TODO Decode pixel info from high or low byte
+    // Use % 2 to know if the pixel is odd or even
+    // Add palette
+    gl_FragColor = texture2D(tex, vTextureCoord);
 }
