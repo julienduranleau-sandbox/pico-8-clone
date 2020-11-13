@@ -54,6 +54,9 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
 
     container.appendChild(canvas)
 
+    window.addEventListener("keydown", keydown_handler)
+    window.addEventListener("keyup", keyup_handler)
+
     renderer.init(canvas).then(() => {
         if (init_fn !== null) {
             init_fn()
@@ -61,6 +64,33 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
 
         game_loop()
     })
+}
+
+function keydown_handler(e) {
+    let mask = null
+
+    switch (e.key) {
+        // P1
+        case "ArrowLeft": mask = 0b00000001; break
+        case "ArrowRight": mask = 0b00000010; break
+        case "ArrowUp": mask = 0b00000100; break
+        case "ArrowDown": mask = 0b00001000; break
+        case "n": mask = 0b00010000; break
+        case "m": mask = 0b00100000; break
+        // P2
+        case "s": mask = 0b0000000100000000
+        case "f": mask = 0b0000001000000000
+        case "e": mask = 0b0000010000000000
+        case "d": mask = 0b0000100000000000
+        case "s": mask = 0b0001000000000000
+        case "s": mask = 000010000000000000
+    }
+
+    //poke(vm.memory.keys, peek(vm.memory.keys) ^ mask)
+}
+
+function keyup_handler(e) {
+
 }
 
 function init_font() {
