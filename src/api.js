@@ -5,7 +5,11 @@ export function hex(n) {
     return n.toString(16)
 }
 
-export function random_float(a, b) {
+export function rnd_seed(seed) {
+    Math.seedrandom(seed)
+}
+
+export function rndf(a, b) {
     if (Array.isArray(a)) {
         return a[Math.floor(Math.random() * a.length)]
     } else {
@@ -13,7 +17,7 @@ export function random_float(a, b) {
     }
 }
 
-export function random(a, b) {
+export function rnd(a, b) {
     return Math.round(a + Math.random() * (b - a))
 }
 
@@ -59,8 +63,8 @@ export function cstore(dest_addr, source_addr, len) {
  * @ref https://pico-8.fandom.com/wiki/Memcpy
  */
 export function memcpy(dest_addr, source_addr, len) {
-    let dest = vm.memory.subarray(dest_addr, dest_addr + len)
-    let src = vm.memory.subarray(source_addr, source_addr + len)
+    let dest = vm.memory.raw.subarray(dest_addr, dest_addr + len)
+    let src = vm.memory.raw.subarray(source_addr, source_addr + len)
 
     for (let i = 0; i < len; i++) {
         dest[i] = src[i]
@@ -77,7 +81,7 @@ export function memcpy(dest_addr, source_addr, len) {
  * @ref https://pico-8.fandom.com/wiki/Memset
  */
 export function memset(dest_addr, val, len) {
-    vm.memory.subarray(dest_addr, dest_addr + len).fill(val)
+    vm.memory.raw.subarray(dest_addr, dest_addr + len).fill(val)
 }
 
 /**
@@ -88,7 +92,32 @@ export function memset(dest_addr, val, len) {
  * @ref https://pico-8.fandom.com/wiki/Peek
  */
 export function peek(addr) {
-    return vm.memory[addr]
+    return vm.memory.raw[addr]
+}
+
+/**
+ * Reads a 16 bit value from a memory location.
+ * The value is interpreted in the Little Endian representation
+ * 
+ * @param {number} addr The address of the memory location.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Peek2
+ */
+export function peek2(addr) {
+    return vm.memory.raw[addr + 1] << 8 ^ vm.memory.raw[addr]
+}
+
+/**
+ * Reads a 32 bit value from a memory location.
+ * The value is interpreted in the Little Endian representation
+ * 
+ * @param {number} addr The address of the memory location.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Peek4
+ */
+export function peek4(addr) {
+    // `>>> 0` forces an unsigned 32 bit integer
+    return (vm.memory.raw[addr + 3] << 24 ^ vm.memory.raw[addr + 2] << 16 ^ vm.memory.raw[addr + 1] << 8 ^ vm.memory.raw[addr]) >>> 0
 }
 
 /**
@@ -100,7 +129,37 @@ export function peek(addr) {
  * @ref https://pico-8.fandom.com/wiki/Poke
  */
 export function poke(addr, val) {
-    vm.memory[addr] = val
+    vm.memory.raw[addr] = val
+}
+
+/**
+ * Writes a 16-bit value to two consecutive memory locations.
+ * The value is interpreted in the Little Endian representation
+ * 
+ * @param {number} addr The address of the memory location.
+ * @param {number} val The 16-bit value.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Poke2
+ */
+export function poke2(addr, val) {
+    vm.memory.raw[addr] = val & 0xFF
+    vm.memory.raw[addr + 1] = (val >> 8) & 0xFF
+}
+
+/**
+ * Writes a 32-bit value to two consecutive memory locations.
+ * The value is interpreted in the Little Endian representation
+ * 
+ * @param {number} addr The address of the memory location.
+ * @param {number} val The 32-bit value.
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Poke4
+ */
+export function poke4(addr, val) {
+    vm.memory.raw[addr] = val & 0xFF
+    vm.memory.raw[addr + 1] = (val >> 8) & 0xFF
+    vm.memory.raw[addr + 2] = (val >> 16) & 0xFF
+    vm.memory.raw[addr + 3] = (val >> 24) & 0xFF
 }
 
 /**
@@ -237,7 +296,8 @@ export function mset(x, y, sprite) {
  * @ref https://pico-8.fandom.com/wiki/Camera
  */
 export function camera(x = 0, y = 0) {
-    // TODO
+    poke2(vm.memory.camera_x, x)
+    poke2(vm.memory.camera_y, y)
 }
 
 /**
@@ -334,7 +394,7 @@ export function circfill(xc, yc, r = 4, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Clip
  */
 export function clip(x = null, y = null, w = null, h = null) {
-
+    // TODO
 }
 
 /**
@@ -345,7 +405,8 @@ export function clip(x = null, y = null, w = null, h = null) {
  * @ref https://pico-8.fandom.com/wiki/Cls
  */
 export function cls(color = 0) {
-    vm.memory.subarray(0x6000, 0x8000).fill(0)
+    cursor(0, 0)
+    vm.memory.raw.subarray(0x6000, 0x8000).fill(color << 4 ^ color)
 }
 
 /**
@@ -356,7 +417,7 @@ export function cls(color = 0) {
  * @ref https://pico-8.fandom.com/wiki/Color
  */
 export function color(color = 6) {
-
+    poke(vm.memory.color, color)
 }
 
 /**
@@ -368,8 +429,10 @@ export function color(color = 6) {
  * 
  * @ref https://pico-8.fandom.com/wiki/Cursor
  */
-export function cursor(x = 0, y = color, color = 0) {
-
+export function cursor(x = 0, y = 0, color = null) {
+    poke(vm.memory.cursor_x, x)
+    poke(vm.memory.cursor_y, y)
+    if (color !== null) poke(vm.memory.color, color)
 }
 
 /**
@@ -381,7 +444,7 @@ export function cursor(x = 0, y = color, color = 0) {
  * @ref https://pico-8.fandom.com/wiki/Fget
  */
 export function fget(n, f = null) {
-
+    // TODO
 }
 
 /**
@@ -392,7 +455,7 @@ export function fget(n, f = null) {
  * @ref https://pico-8.fandom.com/wiki/Fillp
  */
 export function fillp(pat) {
-
+    // TODO
 }
 
 /**
@@ -406,7 +469,7 @@ export function fillp(pat) {
  * @ref https://pico-8.fandom.com/wiki/Fset
  */
 export function fset(n, f = null, v = null) {
-
+    // TODO
 }
 
 /**
@@ -467,7 +530,7 @@ export function line(x0, y0, x1, y1, color) {
  * @ref https://pico-8.fandom.com/wiki/Pal
  */
 export function pal(c0, c1, p = 0) {
-
+    // TODO
 }
 
 /**
@@ -479,7 +542,7 @@ export function pal(c0, c1, p = 0) {
  * @ref https://pico-8.fandom.com/wiki/Palt
  */
 export function palt(color, transparent) {
-
+    // TODO
 }
 
 /**
@@ -493,8 +556,8 @@ export function palt(color, transparent) {
 export function pget(x, y) {
     const addr = 0x6000 + Math.floor(x / 2) + y * 64
     return (x % 2 == 0)
-        ? vm.memory[addr] >> 4  // high
-        : vm.memory[addr] & 0xF  // low
+        ? vm.memory.raw[addr] >> 4  // high
+        : vm.memory.raw[addr] & 0xF  // low
 }
 
 /**
@@ -508,7 +571,35 @@ export function pget(x, y) {
  * @ref https://pico-8.fandom.com/wiki/Print
  */
 export function print(str, x = null, y = null, color = null) {
+    if (x === null) x = peek(vm.memory.cursor_x)
+    if (y === null) y = peek(vm.memory.cursor_y)
 
+    const original_x = x
+    const lines = str.split("\n")
+
+    for (const line of lines) {
+        for (const c of line.split('')) {
+            const letter = vm.font[c]
+
+            if (!letter) continue // ignore characters not in font
+
+            for (let row = 0; row < letter.length; row++) {
+                for (let col = 0; col < letter[row].length; col++) {
+                    if (letter[row][col] === 1) {
+                        pset(x + col, y + row, color)
+                    }
+                }
+            }
+
+            x += letter[0].length + 1
+        }
+
+        x = original_x
+        y += 6
+
+    }
+
+    poke(vm.memory.cursor_y, y)
 }
 
 /**
@@ -521,18 +612,27 @@ export function print(str, x = null, y = null, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Pset
  */
 export function pset(x, y, color = null) {
-    if (color === null) {
-        color = 6
+    if (color === null) color = peek(vm.memory.color)
+    else if (peek(vm.memory.color) != color) poke(vm.memory.color, color)
+
+    const camera_x = peek2(vm.memory.camera_x)
+    const camera_y = peek2(vm.memory.camera_y)
+
+    x += camera_x
+    y += camera_y
+
+    if (x < 0 || x >= vm.screen_size.width || y < 0 || y >= vm.screen_size.height) {
+        return
     }
 
     const addr = 0x6000 + Math.floor(x / 2) + y * 64
-    const current = vm.memory[addr]
+    const current = vm.memory.raw[addr]
 
-    vm.memory[addr] = (x % 2 == 0)
+    vm.memory.raw[addr] = (x % 2 == 0)
         ? (color << 4) ^ (current & 0xF) // high
         : (current & 0xF0) ^ color  // low
 
-    // console.log(`Set ${x}, ${y} at 0x${hex(addr)} with value : ${hex(vm.memory[addr])}`)
+    // console.log(`Set ${x}, ${y} at 0x${hex(addr)} with value : ${hex(vm.memory.raw[addr])}`)
 }
 
 /**
@@ -587,7 +687,7 @@ export function rectfill(x0, y0, x1, y1, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Sget
  */
 export function sget(x, y) {
-
+    // TODO
 }
 
 /**
@@ -604,7 +704,7 @@ export function sget(x, y) {
  * @ref https://pico-8.fandom.com/wiki/Spr
  */
 export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
-
+    // TODO
 }
 
 /**
@@ -617,7 +717,7 @@ export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
  * @ref https://pico-8.fandom.com/wiki/Sset
  */
 export function sset(x, y, color = null) {
-
+    // TODO
 }
 
 /**
@@ -637,7 +737,7 @@ export function sset(x, y, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Sspr
  */
 export function sspr(sx, sy, sw, sh, dx, dy, dw = null, dh = null, flip_x = false, flip_y = false) {
-
+    // TODO
 }
 
 /**
@@ -655,5 +755,5 @@ export function sspr(sx, sy, sw, sh, dx, dy, dw = null, dh = null, flip_x = fals
  * @ref https://pico-8.fandom.com/wiki/Tline
  */
 export function tline(x0, y0, x1, y1, mx, my, mdx = 1 / 8, mdy = 0) {
-
+    // TODO
 }

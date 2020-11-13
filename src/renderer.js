@@ -116,7 +116,7 @@ async function compileShaderFile(file, type) {
     return shader
 }
 
-export function render(pixels, palette) {
+export function render(pixels, palette, draw_mode) {
     gl.viewport(0, 0, glCanvas.width, glCanvas.height)
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clear(gl.COLOR_BUFFER_BIT)
@@ -128,6 +128,9 @@ export function render(pixels, palette) {
 
     const uPalette = gl.getUniformLocation(shaderProgram, 'palette')
     gl.uniform3fv(uPalette, palette)
+
+    const uDrawMode = gl.getUniformLocation(shaderProgram, 'draw_mode')
+    gl.uniform1i(uDrawMode, draw_mode)
 
     let texture = create_texture(pixels)
     const uTex = gl.getUniformLocation(shaderProgram, 'tex')
