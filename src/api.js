@@ -302,7 +302,7 @@ export function btn_map(n, key, player = 1) {
  * @new
  */
 export function mousep() {
-    return vm.keys.mouse.pressed
+    return vm.mouse.pressed
 }
 
 /**
@@ -311,7 +311,7 @@ export function mousep() {
  * @new
  */
 export function mouse() {
-    return vm.keys.mouse.down
+    return vm.mouse.down
 }
 
 /**
@@ -342,7 +342,7 @@ export function my() {
  * @ref https://pico-8.fandom.com/wiki/Flip
  */
 export function flip() {
-    vm.game_loop(false)
+    // TODO
 }
 
 /**

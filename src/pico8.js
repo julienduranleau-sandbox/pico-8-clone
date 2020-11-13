@@ -3,6 +3,7 @@
 import './libs/seedrandom.js'
 import * as api from './api.js'
 import * as renderer from './renderer.js'
+import * as editor from './editor.js'
 
 const canvas = document.createElement("canvas")
 
@@ -19,6 +20,7 @@ let update_fn = null
 let draw_fn = null
 
 window.vm = {
+    in_editor: true,
     screen_size: {
         width: canvas.width,
         height: canvas.height,
@@ -93,16 +95,37 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
     window.addEventListener("keydown", keydown_handler)
     window.addEventListener("keyup", keyup_handler)
     window.addEventListener("mousemove", mousemove_handler)
+    window.addEventListener("mousedown", mousedown_handler)
+    window.addEventListener("mouseup", mouseup_handler)
 
     renderer.init(canvas).then(() => {
-        if (init_fn !== null) {
-            init_fn()
-        }
+        editor.init()
+        game_loop()
+        // if (init_fn !== null) {
+        //     init_fn()
+        // }
 
-        if (draw_fn) {
-            game_loop()
-        }
+        // if (draw_fn) {
+        //     game_loop()
+        // }
     })
+}
+
+function game_loop() {
+    editor.loop()
+
+    // if (update_fn) update_fn()
+    // if (draw_fn) draw_fn()
+
+    renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), vm.palette, peek(vm.memory.draw_mode))
+
+    for (let key in vm.keys.pressed) {
+        vm.keys.pressed[key] = false
+    }
+
+    vm.mouse.pressed = false
+
+    requestAnimationFrame(game_loop)
 }
 
 function keydown_handler(e) {
@@ -118,17 +141,19 @@ function keyup_handler(e) {
 }
 
 function mousemove_handler(e) {
-    if (!vm.mouse.down) {
-        vm.mouse.pressed = e.buttons > 0
-        vm.mouse.down = true
-    } else if (e.buttons === 0) {
-        vm.mouse.pressed = false
-        vm.mouse.down = false
-    }
-
     const canvas_pos = canvas.getBoundingClientRect()
     vm.mouse.x = clamp(Math.floor((e.clientX - canvas_pos.left) / vm.screen_size.scale), -1, vm.screen_size.width)
     vm.mouse.y = clamp(Math.floor((e.clientY - canvas_pos.top) / vm.screen_size.scale), -1, vm.screen_size.height)
+}
+
+function mousedown_handler(e) {
+    vm.mouse.pressed = true
+    vm.mouse.down = true
+}
+
+function mouseup_handler(e) {
+    vm.mouse.pressed = false
+    vm.mouse.down = false
 }
 
 function init_font() {
@@ -193,21 +218,6 @@ function init_font() {
             resolve(letters)
         })
     })
-}
-
-function game_loop(auto_refresh = true) {
-    if (update_fn) update_fn()
-    if (draw_fn) draw_fn()
-
-    renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), vm.palette, peek(vm.memory.draw_mode))
-
-    for (let key in vm.keys.pressed) {
-        vm.keys.pressed[key] = false
-    }
-
-    vm.mouse.pressed = false
-
-    if (auto_refresh) requestAnimationFrame(game_loop)
 }
 
 function init_memory() {
