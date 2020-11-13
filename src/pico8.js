@@ -43,6 +43,8 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
         font: await init_font(),
     }
 
+    console.log(window.vm.font)
+
     for (let key in api) {
         window[key] = api[key]
     }
@@ -59,8 +61,62 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
 }
 
 function init_font() {
-    const font_img = new Image()
-    font_img.src = "font.png"
+    return new Promise(resolve => {
+        const font_img = new Image()
+        font_img.src = 'font.png'
+        font_img.addEventListener('load', e => {
+            let c = document.createElement('canvas')
+            let ctx = c.getContext('2d')
+            c.width = font_img.width
+            c.height = font_img.height
+            ctx.drawImage(font_img, 0, 0)
+            const pixels = ctx.getImageData(0, 0, c.width, c.height).data
+
+            const x_padding = 5
+            const y_padding = 3
+            const letter_width = 3
+            const letter_height = 5
+            const letter_lines = [
+                ' !"#$%&\'()*+,-./',
+                '0123456789:;<=>?',
+                '@abcdefghijklmno',
+                'pqrstuvwxyz[\\]^_',
+                '`ABCDEFGHIJKLMNO',
+                'PQRSTUVWXYZ{|}~'
+            ].map(v => v.split(''))
+
+            let letters = {}
+
+            // For each lines in the image
+            for (let line_i = 0; line_i < letter_lines.length; line_i++) {
+                // For each characters of that line
+                for (let char_i = 0; char_i < letter_lines[line_i].length; char_i++) {
+                    let letter = letter_lines[line_i][char_i]
+                    let x = char_i * (x_padding + letter_width)
+                    let y = 16 + line_i * (y_padding + letter_height)
+
+                    // 
+                    let binary_lines = []
+                    for (let y_offset = 0; y_offset < letter_height; y_offset++) {
+                        let binary = []
+                        for (let x_offset = 0; x_offset < letter_width; x_offset++) {
+                            let px_offset = ((y + y_offset) * c.width + x + x_offset) * 4
+                            if (pixels[px_offset] !== 0) {
+                                binary.push(1)
+                            } else {
+                                binary.push(0)
+                            }
+                        }
+                        binary_lines.push(binary)
+                    }
+
+                    letters[letter] = binary_lines
+                }
+            }
+
+            resolve(letters)
+        })
+    })
 }
 
 function game_loop() {
