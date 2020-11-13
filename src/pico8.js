@@ -18,79 +18,117 @@ let init_fn = null
 let update_fn = null
 let draw_fn = null
 
+window.vm = {
+    screen_size: {
+        width: canvas.width,
+        height: canvas.height,
+        scale: 1,
+    },
+    memory: null,     // defined in boot
+    palette: null,    // defined in boot
+    boot_time: null,  // defined in boot
+    font: null,       // defined in boot
+    mouse: {
+        pressed: false,
+        down: false,
+        x: 0,
+        y: 0,
+    },
+    keys: {
+        down: {},
+        pressed: {},
+        mappings: {
+            player1: {
+                0: "ArrowLeft",
+                1: "ArrowRight",
+                2: "ArrowUp",
+                3: "ArrowDown",
+                4: "n",
+                5: "m",
+            },
+            player2: {
+                0: "s",
+                1: "f",
+                2: "e",
+                3: "d",
+                4: "Shift",
+                5: "a",
+            }
+        }
+    },
+    game_loop,
+}
+
 export default {
     boot,
     scale,
 }
 
 function scale(n) {
+    vm.screen_size.scale = n
     canvas.style.width = canvas.width * n + "px"
     canvas.style.height = canvas.height * n + "px"
 }
 
 async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = null) {
+    if (!container) {
+        container = document.body
+    }
+
     for (let key in api) {
         window[key] = api[key]
     }
 
-    if (!container) {
-        container = document.body
-    }
+    container.appendChild(canvas)
 
     init_fn = pinit_fn
     update_fn = pupdate_fn
     draw_fn = pdraw_fn
 
-    window.vm = {
-        screen_size: {
-            width: canvas.width,
-            height: canvas.height,
-        },
-        memory: init_memory(),
-        palette: init_palette(),
-        boot_time: Date.now(),
-        font: await init_font(),
-    }
-
-    container.appendChild(canvas)
+    vm.memory = init_memory()
+    vm.palette = init_palette()
+    vm.boot_time = Date.now()
+    vm.font = await init_font()
 
     window.addEventListener("keydown", keydown_handler)
     window.addEventListener("keyup", keyup_handler)
+    window.addEventListener("mousemove", mousemove_handler)
 
     renderer.init(canvas).then(() => {
         if (init_fn !== null) {
             init_fn()
         }
 
-        game_loop()
+        if (draw_fn) {
+            game_loop()
+        }
     })
 }
 
 function keydown_handler(e) {
-    let mask = null
-
-    switch (e.key) {
-        // P1
-        case "ArrowLeft": mask = 0b00000001; break
-        case "ArrowRight": mask = 0b00000010; break
-        case "ArrowUp": mask = 0b00000100; break
-        case "ArrowDown": mask = 0b00001000; break
-        case "n": mask = 0b00010000; break
-        case "m": mask = 0b00100000; break
-        // P2
-        case "s": mask = 0b0000000100000000
-        case "f": mask = 0b0000001000000000
-        case "e": mask = 0b0000010000000000
-        case "d": mask = 0b0000100000000000
-        case "s": mask = 0b0001000000000000
-        case "s": mask = 000010000000000000
+    if (!vm.keys.down[e.key]) {
+        vm.keys.down[e.key] = true
+        vm.keys.pressed[e.key] = true
     }
-
-    //poke(vm.memory.keys, peek(vm.memory.keys) ^ mask)
 }
 
 function keyup_handler(e) {
+    vm.keys.down[e.key] = false
+    vm.keys.pressed[e.key] = false
+}
 
+function mousemove_handler(e) {
+    if (!vm.mouse.down) {
+        vm.mouse.pressed = e.buttons > 0
+        vm.mouse.down = true
+    } else if (e.buttons === 0) {
+        vm.mouse.pressed = false
+        vm.mouse.down = false
+    }
+
+    const canvas_pos = canvas.getBoundingClientRect()
+    vm.mouse.x = clamp(Math.floor((e.clientX - canvas_pos.left) / vm.screen_size.scale), -1, vm.screen_size.width)
+    vm.mouse.y = clamp(Math.floor((e.clientY - canvas_pos.top) / vm.screen_size.scale), -1, vm.screen_size.height)
 }
 
 function init_font() {
@@ -157,13 +195,19 @@ function init_font() {
     })
 }
 
-function game_loop() {
+function game_loop(auto_refresh = true) {
     if (update_fn) update_fn()
     if (draw_fn) draw_fn()
 
     renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), vm.palette, peek(vm.memory.draw_mode))
 
-    requestAnimationFrame(game_loop)
+    for (let key in vm.keys.pressed) {
+        vm.keys.pressed[key] = false
+    }
+
+    vm.mouse.pressed = false
+
+    if (auto_refresh) requestAnimationFrame(game_loop)
 }
 
 function init_memory() {
@@ -186,6 +230,10 @@ function init_memory() {
 
     const memory = {
         raw: raw,
+        clip_left: 0x5f20,
+        clip_top: 0x5f21,
+        clip_right: 0x5f22,
+        clip_bottom: 0x5f23,
         color: 0x5f25,
         cursor_x: 0x5f26,
         cursor_y: 0x5f27,
@@ -195,6 +243,9 @@ function init_memory() {
     }
 
     raw[memory.color] = 0x6
+
+    raw[memory.clip_right] = canvas.width
+    raw[memory.clip_bottom] = canvas.height
 
     // for (let i = 0x6000; i < 0x8000; i++) {
     //     let low = Math.floor(Math.random() * 16)

@@ -1,24 +1,50 @@
 /* ============================================================= */
 /* ========================    EXTRA   ========================= */
 
+/**
+ * @new
+ */
+export function clamp(n, min, max) {
+    return Math.min(Math.max(n, min), max)
+}
+
+/**
+ * @new
+ */
 export function hex(n) {
     return n.toString(16)
 }
 
+/**
+ * @new
+ */
 export function rnd_seed(seed) {
     Math.seedrandom(seed)
 }
 
-export function rndf(a, b) {
-    if (Array.isArray(a)) {
-        return a[Math.floor(Math.random() * a.length)]
-    } else {
-        return a + Math.random() * (b - a)
-    }
+/**
+ * @new
+ */
+export function rnd(a, b) {
+    return (b === undefined)
+        ? Math.random() * a
+        : a + Math.random() * (b - a)
 }
 
-export function rnd(a, b) {
-    return Math.round(a + Math.random() * (b - a))
+/**
+ * @new
+ */
+export function rndi(a, b) {
+    return (b === undefined)
+        ? Math.floor(Math.random() * a)
+        : Math.floor(a + Math.random() * (b - a))
+}
+
+/**
+ * @new
+ */
+export function rnd_array(a) {
+    return a[rndi(0, Math.floor(Math.random() * a.length))]
 }
 
 /* ============================================================= */
@@ -208,30 +234,103 @@ export function sfx(n, channel = -1, offset = 0, length = null) {
 /* ============================================================= */
 /* ========================    INPUT   ========================= */
 /**
+ * Tests if a key is being pressed at this moment.
+ * 
+ * @param {string} key The key name.
+ * 
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+ * @new
+ */
+export function key(key) {
+    if (!vm.keys.down[key]) vm.keys.down[key] = false
+    return vm.keys.down[key]
+}
+
+/**
+ * Tests if a key has just been pressed, with keyboard-style repeating.
+ * 
+ * @param {string} key The key name.
+ * 
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+ * @new
+ */
+export function keyp(key) {
+    if (!vm.keys.pressed[key]) vm.keys.pressed[key] = false
+    return vm.keys.pressed[key]
+}
+
+/**
  * Tests if a button is being pressed at this moment.
  * 
  * @param {number} n The button number.
- * @param {number} player The player number.
+ * @param {number} player The player number. 1 or 2
  * 
  * @ref https://pico-8.fandom.com/wiki/Btn
  */
 export function btn(n, player = 1) {
-    // TODO
+    return key(vm.keys.mappings[`player${player}`][n])
 }
 
 /**
  * Tests if a button has just been pressed, with keyboard-style repeating.
  * 
  * @param {number} n The button number.
- * @param {number} player The player number.
+ * @param {number} player The player number. 1 or 2
  * 
  * @ref https://pico-8.fandom.com/wiki/Btnp
  */
-export function btnp(i, player = 1) {
-    // TODO
+export function btnp(n, player = 1) {
+    return keyp(vm.keys.mappings[`player${player}`][n])
 }
 
+/**
+ * Change a player btn for a new key.
+ * 
+ * @param {number} n The button number.
+ * @param {string} key The key value.
+ * @param {number} player The player number. 1 or 2
+ * 
+ * @ref https://pico-8.fandom.com/wiki/Btnp
+ */
+export function btn_map(n, key, player = 1) {
+    vm.keys.mappings[`player${player}`][n] = key
+}
 
+/**
+ * Tests if the mouse button has just been pressed.
+ * 
+ * @new
+ */
+export function mousep() {
+    return vm.keys.mouse.pressed
+}
+
+/**
+ * Tests if the mouse button is being pressed at this moment.
+ * 
+ * @new
+ */
+export function mouse() {
+    return vm.keys.mouse.down
+}
+
+/**
+ * Reads the x position of the mouse
+ * 
+ * @new
+ */
+export function mx() {
+    return vm.mouse.x
+}
+
+/**
+ * Reads the y position of the mouse
+ * 
+ * @new
+ */
+export function my() {
+    return vm.mouse.y
+}
 
 
 /* ============================================================= */
@@ -243,7 +342,7 @@ export function btnp(i, player = 1) {
  * @ref https://pico-8.fandom.com/wiki/Flip
  */
 export function flip() {
-    // TODO
+    vm.game_loop(false)
 }
 
 /**
@@ -393,8 +492,11 @@ export function circfill(xc, yc, r = 4, color = null) {
  * 
  * @ref https://pico-8.fandom.com/wiki/Clip
  */
-export function clip(x = null, y = null, w = null, h = null) {
-    // TODO
+export function clip(x = 0, y = 0, w = null, h = null) {
+    poke(vm.memory.clip_left, x)
+    poke(vm.memory.clip_right, (w !== null) ? x + w : vm.screen_size.width)
+    poke(vm.memory.clip_top, y)
+    poke(vm.memory.clip_bottom, (h !== null) ? y + h : vm.screen_size.height)
 }
 
 /**
@@ -609,6 +711,8 @@ export function print(str, x = null, y = null, color = null) {
  * @param {number} y The x coordinate
  * @param {number} color The color value. If not specified, uses the current color of the draw state.
  * 
+ * @todo Optimize pixel batches to skip memory check (e.g. circlefill and rectfill calls)
+ * 
  * @ref https://pico-8.fandom.com/wiki/Pset
  */
 export function pset(x, y, color = null) {
@@ -617,11 +721,24 @@ export function pset(x, y, color = null) {
 
     const camera_x = peek2(vm.memory.camera_x)
     const camera_y = peek2(vm.memory.camera_y)
+    const clip_left = peek(vm.memory.clip_left)
+    const clip_right = peek(vm.memory.clip_right)
+    const clip_top = peek(vm.memory.clip_top)
+    const clip_bottom = peek(vm.memory.clip_bottom)
 
     x += camera_x
     y += camera_y
 
-    if (x < 0 || x >= vm.screen_size.width || y < 0 || y >= vm.screen_size.height) {
+    if (
+        x < 0 ||
+        y < 0 ||
+        x >= vm.screen_size.width ||
+        y >= vm.screen_size.height ||
+        x < clip_left ||
+        x >= clip_right ||
+        y < clip_top ||
+        y >= clip_bottom
+    ) {
         return
     }
 
@@ -631,8 +748,6 @@ export function pset(x, y, color = null) {
     vm.memory.raw[addr] = (x % 2 == 0)
         ? (color << 4) ^ (current & 0xF) // high
         : (current & 0xF0) ^ color  // low
-
-    // console.log(`Set ${x}, ${y} at 0x${hex(addr)} with value : ${hex(vm.memory.raw[addr])}`)
 }
 
 /**
