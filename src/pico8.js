@@ -60,9 +60,25 @@ window.vm = {
         height: canvas.height,
         scale: 1,
     },
-    memory: null,     // defined in boot
-    boot_time: null,  // defined in boot
-    font: null,       // defined in boot
+    addr: {
+        spritesheet: 0x0000, // up to 0x0fff for top 64 sprites, then 0x1fff for 64 bottom sprites
+        palette: 0x5f00, // up to 0x5f0f
+        screen_palette: 0x5f10, // up to 0x5f1f
+        clip_left: 0x5f20,
+        clip_top: 0x5f21,
+        clip_right: 0x5f22,
+        clip_bottom: 0x5f23,
+        color: 0x5f25,
+        cursor_x: 0x5f26,
+        cursor_y: 0x5f27,
+        camera_x: 0x5f28, // and 0x5f29. 16 bit split in 2
+        camera_y: 0x5f2a, // and 0x5f2b. 16 bit split in 2
+        draw_mode: 0x5f2c,
+        screen_palette_reset: 0x5f2e,
+    },
+    memory: null,       // defined in boot
+    boot_time: null,    // defined in boot
+    font: null,         // defined in boot
     mouse: {
         pressed: false,
         down: false,
@@ -154,7 +170,7 @@ function game_loop() {
         editor.loop()
     }
 
-    renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), get_gpu_palette(), peek(vm.memory.draw_mode))
+    renderer.render(vm.memory.subarray(0x6000, 0x8000), get_gpu_palette(), peek(vm.addr.draw_mode))
 
     for (let key in vm.keys.pressed) {
         vm.keys.pressed[key] = false
@@ -172,15 +188,16 @@ async function keydown_handler(e) {
     }
 
     if (keyp("R")) {
+        vm.memory = init_memory()
         await reload_cart()
         vm.in_game = true
     }
 
     if (keyp("Escape")) {
         vm.in_game = false
-        if (peek(vm.memory.screen_palette_reset) !== 1) {
+        if (peek(vm.addr.screen_palette_reset) !== 1) {
             for (let color = 0; color <= 0xF; color++) {
-                vm.memory.raw[vm.memory.screen_palette + color] = color
+                vm.memory[vm.addr.screen_palette + color] = color
             }
         }
     }
@@ -289,38 +306,20 @@ function init_memory() {
     */
     const saved_memory = localStorage.getItem('pico8-ram')
 
-    const raw = saved_memory
+    const memory = saved_memory
         ? Uint8Array.from(saved_memory.split(','))
         : new Uint8Array(0x8000).fill(0)
 
-    const memory = {
-        raw: raw,
-        spritesheet: 0x0000, // up to 0x0fff for top 64 sprites, then 0x1fff for 64 bottom sprites
-        palette: 0x5f00, // up to 0x5f0f
-        screen_palette: 0x5f10, // up to 0x5f1f
-        clip_left: 0x5f20,
-        clip_top: 0x5f21,
-        clip_right: 0x5f22,
-        clip_bottom: 0x5f23,
-        color: 0x5f25,
-        cursor_x: 0x5f26,
-        cursor_y: 0x5f27,
-        camera_x: 0x5f28, // and 0x5f29. 16 bit split in 2
-        camera_y: 0x5f2a, // and 0x5f2b. 16 bit split in 2
-        draw_mode: 0x5f2c,
-        screen_palette_reset: 0x5f2e,
-    }
+    memory[vm.addr.color] = 0x6
 
-    raw[memory.color] = 0x6
-
-    raw[memory.clip_right] = canvas.width
-    raw[memory.clip_bottom] = canvas.height
+    memory[vm.addr.clip_right] = canvas.width
+    memory[vm.addr.clip_bottom] = canvas.height
 
     for (let color = 0; color <= 0xF; color++) {
-        raw[memory.palette + color] = color
-        raw[memory.screen_palette + color] = color
+        memory[vm.addr.palette + color] = color
+        memory[vm.addr.screen_palette + color] = color
     }
-    raw[memory.palette] ^= 0x10 // set black transparent
+    memory[vm.addr.palette] ^= 0x10 // set black transparent
 
     return memory
 }
@@ -328,9 +327,9 @@ function init_memory() {
 function get_gpu_palette() {
     // https://pico-8.fandom.com/wiki/Palette
     return Float32Array.from(
-        vm.memory.raw.slice(
-            vm.memory.screen_palette,
-            vm.memory.screen_palette + 16
+        vm.memory.slice(
+            vm.addr.screen_palette,
+            vm.addr.screen_palette + 16
         ).reduce((arr, c) => {
             arr.push(...rgb_colors[c]);
             return arr

@@ -36,9 +36,9 @@ export function init() {
         },
         render() {
             // Copy spritesheet memory (with offset) to screen memory (with offset)
-            const spritesheet_addr = vm.memory.spritesheet // + page
+            const spritesheet_addr = vm.addr.spritesheet // + page
             const screen_memory = 0x6000 + this.y * 64
-            vm.memory.raw.copyWithin(screen_memory, spritesheet_addr, this.h * 64)
+            vm.memory.copyWithin(screen_memory, spritesheet_addr, this.h * 64)
 
             const border_x = this.x + (sprite_editor.sprite % 16) * 8 - 1
             const border_y = this.y + Math.floor(sprite_editor.sprite / 16) * 8 - 1
@@ -212,5 +212,5 @@ export function loop() {
 }
 
 function save_to_memory() {
-    localStorage.setItem('pico8-ram', vm.memory.raw.toString());
+    localStorage.setItem('pico8-ram', vm.memory.toString());
 }
