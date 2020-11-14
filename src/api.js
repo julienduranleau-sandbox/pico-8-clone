@@ -585,7 +585,7 @@ export function fset(n, f = null, v = null) {
  * 
  * @ref https://pico-8.fandom.com/wiki/Line
  */
-export function line(x0, y0, x1, y1, color) {
+export function line(x0 = 0, y0 = 0, x1 = 0, y1 = 0, color) {
     // Bresenham’s Line Algorithm
     let dx = Math.abs(x1 - x0)
     let dy = Math.abs(y1 - y0)
@@ -753,24 +753,24 @@ export function pset(x, y, color = null) {
 /**
  * Draws an empty rectangle shape.
  * 
- * @param {number} x0 The x coordinate of the upper left corner.
- * @param {number} y0 The y coordinate of the upper left corner.
- * @param {number} x1 The x coordinate of the lower right corner.
- * @param {number} y1 The y coordinate of the lower right corner.
+ * @param {number} x The x coordinate of the upper left corner.
+ * @param {number} y The y coordinate of the upper left corner.
+ * @param {number} w The width of the rectangle.
+ * @param {number} h The height of the rectangle.
  * @param {number} color The color of the rectangle border. If omitted, the color from the draw state is used.
  * 
  * @ref https://pico-8.fandom.com/wiki/Rect
  */
-export function rect(x0, y0, x1, y1, color = null) {
+export function rect(x, y, w, h, color = null) {
     // Horizontal lines
-    for (let x = x0; x < x1; x++) {
-        pset(x, y0, color)
-        pset(x, y1 - 1, color)
+    for (let col = x; col < x + w; col++) {
+        pset(col, y, color)
+        pset(col, y + h - 1, color)
     }
     // Vertical lines
-    for (let y = y0; y < y1; y++) {
-        pset(x0, y, color)
-        pset(x1 - 1, y, color)
+    for (let row = y; row < y + h; row++) {
+        pset(x, row, color)
+        pset(x + w - 1, row, color)
     }
 }
 
@@ -779,16 +779,16 @@ export function rect(x0, y0, x1, y1, color = null) {
  * 
  * @param {number} x0 The x coordinate of the upper left corner.
  * @param {number} y0 The y coordinate of the upper left corner.
- * @param {number} x1 The x coordinate of the lower right corner.
- * @param {number} y1 The y coordinate of the lower right corner.
+ * @param {number} w The width of the rectangle.
+ * @param {number} h The height of the rectangle.
  * @param {number} color The color of the rectangle border. If omitted, the color from the draw state is used.
  * 
  * @ref https://pico-8.fandom.com/wiki/Rectfill
  */
-export function rectfill(x0, y0, x1, y1, color = null) {
-    for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) {
-            pset(x, y, color)
+export function rectfill(x, y, w, h, color = null) {
+    for (let row = y; row < y + h; row++) {
+        for (let col = x; col < x + w; col++) {
+            pset(col, row, color)
         }
     }
 }
