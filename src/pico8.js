@@ -256,6 +256,7 @@ function init_memory() {
 
     const memory = {
         raw: raw,
+        palette: 0x5f00, // up to 0x5f0f
         clip_left: 0x5f20,
         clip_top: 0x5f21,
         clip_right: 0x5f22,
@@ -272,6 +273,11 @@ function init_memory() {
 
     raw[memory.clip_right] = canvas.width
     raw[memory.clip_bottom] = canvas.height
+
+    for (let color = 0; color <= 0xF; color++) {
+        raw[memory.palette + color] = color
+    }
+    raw[memory.palette] ^= 0x10 // set black transparent
 
     // for (let i = 0x6000; i < 0x8000; i++) {
     //     let low = Math.floor(Math.random() * 16)

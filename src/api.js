@@ -632,19 +632,38 @@ export function line(x0 = 0, y0 = 0, x1 = 0, y1 = 0, color) {
  * @ref https://pico-8.fandom.com/wiki/Pal
  */
 export function pal(c0, c1, p = 0) {
-    // TODO
+    if (p === 0) {
+        vm.memory.raw[vm.memory.palette + c0] = c1
+    } else {
+        vm.palette
+    }
 }
 
 /**
- * Change the transparency of a color in the draw state for subsequent draw calls. 
+ * Change the transparency of a color in the draw state for subsequent draw calls.
+ * When called with no parameters, resets the transparency of all colors to default
  * 
  * @param {number} color The number of the color to modify. 
  * @param {bool} transparent If true, treat this color as transparent. If false, treat this color as opaque. 
  * 
  * @ref https://pico-8.fandom.com/wiki/Palt
  */
-export function palt(color, transparent) {
-    // TODO
+export function palt(color, transparent = false) {
+    if (color === undefined) {
+        // Reset the transparency of all colors to default
+        for (let i = 0; i <= 0xF; i++) {
+            vm.memory.raw[vm.memory.palette + i] &= 0x0F
+        }
+        vm.memory.raw[vm.memory.palette] ^= 0x10 // set black transparent
+    } else {
+        // low is color
+        // high is transparency
+        if (transparent) {
+            vm.memory.raw[vm.memory.palette + color] = 0x10 ^ (vm.memory.raw[vm.memory.palette + color] & 0x0F)
+        } else {
+            vm.memory.raw[vm.memory.palette + color] &= 0x0F
+        }
+    }
 }
 
 /**
@@ -715,9 +734,17 @@ export function print(str, x = null, y = null, color = null) {
  * 
  * @ref https://pico-8.fandom.com/wiki/Pset
  */
-export function pset(x, y, color = null) {
+export function pset(x, y, color = null, check_transparency = false) {
     if (color === null) color = peek(vm.memory.color)
     else if (peek(vm.memory.color) != color) poke(vm.memory.color, color)
+
+    const color_value = peek(vm.memory.palette + color)
+    const remapped_color = color_value & 0x0F                   // low
+    const is_transparent = ((color_value & 0xF0) >> 4) === 1    // high
+
+    if (check_transparency && is_transparent) {
+        return
+    }
 
     const camera_x = peek2(vm.memory.camera_x)
     const camera_y = peek2(vm.memory.camera_y)
@@ -746,8 +773,8 @@ export function pset(x, y, color = null) {
     const current = vm.memory.raw[addr]
 
     vm.memory.raw[addr] = (x % 2 == 0)
-        ? (current & 0xF0) ^ color       // low
-        : (color << 4) ^ (current & 0xF) // high
+        ? (current & 0xF0) ^ remapped_color // low
+        : (color << 4) ^ (current & 0xF)    // high
 }
 
 /**
@@ -837,7 +864,7 @@ export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
             let screen_y = y + row
             if (flip_x) screen_x = x + (draw_width - col - 1)
             if (flip_y) screen_y = y + (draw_height - row - 1)
-            pset(screen_x, screen_y, sget(sprite_offset.x + col, sprite_offset.y + row))
+            pset(screen_x, screen_y, sget(sprite_offset.x + col, sprite_offset.y + row), true)
         }
     }
 }
@@ -893,7 +920,7 @@ export function sspr(sx, sy, sw, sh, dx, dy, dw = null, dh = null, flip_x = fals
             const spritesheet_x = sx + Math.floor(sw / dw * col)
             const spritesheet_y = sy + Math.floor(sh / dh * row)
 
-            pset(screen_x, screen_y, sget(spritesheet_x, spritesheet_y))
+            pset(screen_x, screen_y, sget(spritesheet_x, spritesheet_y), true)
         }
     }
 }
