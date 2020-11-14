@@ -1,8 +1,3 @@
-import pico8 from "./pico8.js"
-
-pico8.boot(_init, _update, _draw)
-pico8.scale(6)
-
 let x = 64
 let y = 64
 

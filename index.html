@@ -9,6 +9,10 @@
 </head>
 <body>
     <script src="src/pico8.js" type="module"></script>
-    <script src="src/main.js" type="module"></script>
+    <script>
+        pico8.boot(_init, _update, _draw)
+        pico8.scale(6)
+        pico8.load_cart("cart.js")
+    </script>
 </body>
 </html>

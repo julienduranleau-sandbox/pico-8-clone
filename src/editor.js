@@ -221,5 +221,13 @@ export function loop() {
         s.render()
     }
 
-    // console.log(hex(vm.memory.raw[0]))
+    save_to_memory()
+
+    if (keyp("R")) {
+        console.log("Play!")
+    }
+}
+
+function save_to_memory() {
+    localStorage.setItem('pico8-ram', vm.memory.raw.toString());
 }

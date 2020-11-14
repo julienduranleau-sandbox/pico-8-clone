@@ -230,12 +230,16 @@ function init_memory() {
     0x4300 	0x5dff 	General use(or work RAM)
     0x5e00 	0x5eff 	Persistent cart data(64 numbers = 256 bytes)
     0x5f00 	0x5f3f 	Draw state
-        0x5f00-0x5f0f   Draw palette look-up table
+    0x5f00-0x5f0f   Draw palette look-up table
     0x5f40 	0x5f7f 	Hardware state
     0x5f80 	0x5fff 	GPIO pins(128 bytes)
     0x6000 	0x7fff 	Screen data(8k) 
     */
-    const raw = new Uint8Array(0x8000).fill(0)
+    const saved_memory = localStorage.getItem('pico8-ram')
+
+    const raw = saved_memory
+        ? Uint8Array.from(saved_memory.split(','))
+        : new Uint8Array(0x8000).fill(0)
 
     const memory = {
         raw: raw,
