@@ -802,7 +802,11 @@ export function rectfill(x, y, w, h, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Sget
  */
 export function sget(x, y) {
-    // TODO
+    const addr = 0x0000 + Math.floor(x / 2) + y * 64
+
+    return x % 2 == 0
+        ? vm.memory.raw[addr] & 0x0F         // low
+        : (vm.memory.raw[addr] & 0xF0) >> 4  // hi
 }
 
 /**
@@ -819,7 +823,23 @@ export function sget(x, y) {
  * @ref https://pico-8.fandom.com/wiki/Spr
  */
 export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
-    // TODO
+    const draw_width = (8 * w) >> 0
+    const draw_height = (8 * h) >> 0
+
+    const sprite_offset = {
+        x: (n % 16) * 8,
+        y: Math.floor(n / 16) * 8,
+    }
+
+    for (let row = 0; row < draw_height; row++) {
+        for (let col = 0; col < draw_width; col++) {
+            let screen_x = x + col
+            let screen_y = y + row
+            if (flip_x) screen_x = x + (draw_width - col - 1)
+            if (flip_y) screen_y = y + (draw_height - row - 1)
+            pset(screen_x, screen_y, sget(sprite_offset.x + col, sprite_offset.y + row))
+        }
+    }
 }
 
 /**
@@ -832,7 +852,15 @@ export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
  * @ref https://pico-8.fandom.com/wiki/Sset
  */
 export function sset(x, y, color = null) {
-    // TODO
+    const addr = 0x0000 + Math.floor(x / 2) + y * 64
+
+    if (x % 2 == 0) {
+        // left = low
+        vm.memory.raw[addr] = (vm.memory.raw[addr] & 0xF0) ^ color
+    } else {
+        // right = hi
+        vm.memory.raw[addr] = (vm.memory.raw[addr] & 0x0F) ^ (color << 4)
+    }
 }
 
 /**
@@ -852,7 +880,22 @@ export function sset(x, y, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Sspr
  */
 export function sspr(sx, sy, sw, sh, dx, dy, dw = null, dh = null, flip_x = false, flip_y = false) {
-    // TODO
+    if (dw === null) dw = sw
+    if (dh === null) dh = sh
+
+    for (let row = 0; row < dh; row++) {
+        for (let col = 0; col < dw; col++) {
+            let screen_x = dx + col
+            let screen_y = dy + row
+            if (flip_x) screen_x = dx + (dw - col - 1)
+            if (flip_y) screen_y = dy + (dh - row - 1)
+
+            const spritesheet_x = sx + Math.floor(sw / dw * col)
+            const spritesheet_y = sy + Math.floor(sh / dh * row)
+
+            pset(screen_x, screen_y, sget(spritesheet_x, spritesheet_y))
+        }
+    }
 }
 
 /**

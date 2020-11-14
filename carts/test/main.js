@@ -1,16 +1,17 @@
-let x = 64
-let y = 64
+console.log("Cart loaded")
 
-function _init() {
-
-}
-
-function _update() {
+export function _init() {
 
 }
 
-function _draw() {
+export function _update() {
+
+}
+
+export function _draw() {
     cls(1)
 
-    circ(mx(), my(), 10)
+    // spr(63, mx(), my(), 1, 1)
+    sspr(8, 0, 8, 8, 20, 20, 16, 8, false, false)
+    // circ(mx(), my(), 20)
 }

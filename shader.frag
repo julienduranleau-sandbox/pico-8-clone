@@ -71,8 +71,8 @@ void main() {
     }
 
     float px = texture(tex, pos).r;
-    int high = (int(px * 255.0) & 0xF0) >> 4;
     int low = int(px * 255.0) & 0xF;
+    int high = (int(px * 255.0) & 0xF0) >> 4;
 
     if (int(pos.x * 128.0) % 2 == 0) {
         fragColor = vec4(palette[low] / 255.0, 1.0);

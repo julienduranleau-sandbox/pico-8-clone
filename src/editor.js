@@ -40,7 +40,6 @@ export function init() {
             const screen_memory = 0x6000 + this.y * 64
             vm.memory.raw.copyWithin(screen_memory, spritesheet_addr, this.h * 64)
 
-
             const border_x = this.x + (sprite_editor.sprite % 16) * 8 - 1
             const border_y = this.y + Math.floor(sprite_editor.sprite / 16) * 8 - 1
             rect(border_x, border_y, 10, 10, 6)
@@ -80,22 +79,13 @@ export function init() {
                 x: Math.floor((mx() - this.x) / 8),
                 y: Math.floor((my() - this.y) / 8),
             }
+
             const spritesheet_px = {
                 x: (sprite_editor.sprite % 16) * 8 + editor_px.x,
                 y: Math.floor(sprite_editor.sprite / 16) * 8 + editor_px.y,
             }
 
-            const addr = 0x0000 + Math.floor(spritesheet_px.x / 2) + spritesheet_px.y * 64
-            const current_value = vm.memory.raw[addr]
-
-            if (spritesheet_px.x % 2 == 0) {
-                // left = low
-                vm.memory.raw[addr] = (current_value & 0xF0) ^ sprite_editor.color
-            } else {
-                // right = hi
-                vm.memory.raw[addr] = (current_value & 0x0F) ^ (sprite_editor.color << 4)
-            }
-
+            sset(spritesheet_px.x, spritesheet_px.y, sprite_editor.color)
         },
         render() {
             rectfill(this.x, this.y, this.w, this.h, 0)
@@ -106,10 +96,7 @@ export function init() {
                         x: (sprite_editor.sprite % 16) * 8 + col,
                         y: Math.floor(sprite_editor.sprite / 16) * 8 + row,
                     }
-                    const addr = 0x0000 + Math.floor(spritesheet_px.x / 2) + spritesheet_px.y * 64
-                    const color = col % 2 == 0
-                        ? vm.memory.raw[addr] & 0x0F         // left = low
-                        : (vm.memory.raw[addr] & 0xF0) >> 4  // right = hi
+                    const color = sget(spritesheet_px.x, spritesheet_px.y)
                     rectfill(this.x + col * 8, this.y + row * 8, 8, 8, color)
                 }
             }
@@ -222,10 +209,6 @@ export function loop() {
     }
 
     save_to_memory()
-
-    if (keyp("R")) {
-        console.log("Play!")
-    }
 }
 
 function save_to_memory() {

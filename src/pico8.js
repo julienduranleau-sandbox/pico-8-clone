@@ -15,12 +15,10 @@ canvas.style.imageRendering = "-webkit-crisp-edges"
 canvas.style.imageRendering = "pixelated"
 canvas.style.imageRendering = "crisp-edges"
 
-let init_fn = null
-let update_fn = null
-let draw_fn = null
+let loaded_cart = null
 
 window.vm = {
-    in_editor: true,
+    in_game: false,
     screen_size: {
         width: canvas.width,
         height: canvas.height,
@@ -60,31 +58,29 @@ window.vm = {
     },
 }
 
-export default {
+export default window.pico8 = {
     boot,
     scale,
+    load_cart,
 }
 
 function scale(n) {
+    n = Math.floor(n)
     vm.screen_size.scale = n
     canvas.style.width = canvas.width * n + "px"
     canvas.style.height = canvas.height * n + "px"
 }
 
-async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, container = null) {
-    if (!container) {
-        container = document.body
+async function boot(container_tag = null) {
+    if (!container_tag) {
+        container_tag = document.body
     }
 
     for (let key in api) {
         window[key] = api[key]
     }
 
-    container.appendChild(canvas)
-
-    init_fn = pinit_fn
-    update_fn = pupdate_fn
-    draw_fn = pdraw_fn
+    container_tag.appendChild(canvas)
 
     vm.memory = init_memory()
     vm.palette = init_palette()
@@ -100,21 +96,29 @@ async function boot(pinit_fn = null, pupdate_fn = null, pdraw_fn = null, contain
     renderer.init(canvas).then(() => {
         editor.init()
         game_loop()
-        // if (init_fn !== null) {
-        //     init_fn()
-        // }
-
-        // if (draw_fn) {
-        //     game_loop()
-        // }
     })
 }
 
-function game_loop() {
-    editor.loop()
+async function load_cart(folder) {
+    const code_path = `../${folder}/main.js`
 
-    // if (update_fn) update_fn()
-    // if (draw_fn) draw_fn()
+    loaded_cart = {
+        code_path,
+        code: await import(`${code_path}?${Date.now()}`)
+    }
+}
+
+async function reload_cart() {
+    loaded_cart.code = await import(`${loaded_cart.code_path}?${Date.now()}`)
+}
+
+function game_loop() {
+    if (vm.in_game) {
+        if (loaded_cart.code._update) loaded_cart.code._update()
+        if (loaded_cart.code._draw) loaded_cart.code._draw()
+    } else {
+        editor.loop()
+    }
 
     renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), vm.palette, peek(vm.memory.draw_mode))
 
@@ -127,10 +131,19 @@ function game_loop() {
     requestAnimationFrame(game_loop)
 }
 
-function keydown_handler(e) {
+async function keydown_handler(e) {
     if (!vm.keys.down[e.key]) {
         vm.keys.down[e.key] = true
         vm.keys.pressed[e.key] = true
+    }
+
+    if (keyp("R")) {
+        await reload_cart()
+        vm.in_game = true
+    }
+
+    if (keyp("Escape")) {
+        vm.in_game = false
     }
 }
 
