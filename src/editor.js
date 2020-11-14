@@ -121,7 +121,6 @@ export function init() {
             click() {
                 const active = fget(sprite_editor.sprite, n)
                 fset(sprite_editor.sprite, n, !active)
-                console.log(fget(sprite_editor.sprite, n))
             },
             render() {
                 const active = fget(sprite_editor.sprite, n)
