@@ -130,7 +130,7 @@ export function peek(addr) {
  * @ref https://pico-8.fandom.com/wiki/Peek2
  */
 export function peek2(addr) {
-    return vm.memory.raw[addr + 1] << 8 ^ vm.memory.raw[addr]
+    return (vm.memory.raw[addr + 1] << 8) ^ vm.memory.raw[addr]
 }
 
 /**
@@ -143,7 +143,7 @@ export function peek2(addr) {
  */
 export function peek4(addr) {
     // `>>> 0` forces an unsigned 32 bit integer
-    return (vm.memory.raw[addr + 3] << 24 ^ vm.memory.raw[addr + 2] << 16 ^ vm.memory.raw[addr + 1] << 8 ^ vm.memory.raw[addr]) >>> 0
+    return ((vm.memory.raw[addr + 3] << 24) ^ (vm.memory.raw[addr + 2] << 16) ^ (vm.memory.raw[addr + 1]) << 8 ^ vm.memory.raw[addr]) >>> 0
 }
 
 /**
@@ -746,8 +746,8 @@ export function pset(x, y, color = null) {
     const current = vm.memory.raw[addr]
 
     vm.memory.raw[addr] = (x % 2 == 0)
-        ? (color << 4) ^ (current & 0xF) // high
-        : (current & 0xF0) ^ color  // low
+        ? (current & 0xF0) ^ color       // low
+        : (color << 4) ^ (current & 0xF) // high
 }
 
 /**

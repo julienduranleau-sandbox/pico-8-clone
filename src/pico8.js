@@ -58,7 +58,6 @@ window.vm = {
             }
         }
     },
-    game_loop,
 }
 
 export default {
