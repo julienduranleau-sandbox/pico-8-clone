@@ -1,5 +1,9 @@
 const stage = []
 const hover_list = []
+const sprite_editor = {
+    color: 0,
+    sprite: 0,
+}
 
 export function init() {
     const bt_sprite_editor = {
@@ -27,8 +31,19 @@ export function init() {
         y: 88,
         w: 128,
         h: 32,
+        mouse_down() {
+            sprite_editor.sprite = Math.floor((mx() - this.x) / 8) + (Math.floor((my() - this.y) / 8) * 16)
+        },
         render() {
-            rectfill(this.x, this.y, this.w, this.h, 0)
+            // Copy spritesheet memory (with offset) to screen memory (with offset)
+            const spritesheet_addr = 0x0000 // + page
+            const screen_memory = 0x6000 + this.y * 64
+            vm.memory.raw.copyWithin(screen_memory, spritesheet_addr, this.h * 64)
+
+
+            const border_x = this.x + (sprite_editor.sprite % 16) * 8 - 1
+            const border_y = this.y + Math.floor(sprite_editor.sprite / 16) * 8 - 1
+            rect(border_x, border_y, 10, 10, 6)
         }
     }
 
@@ -37,13 +52,21 @@ export function init() {
         y: 10,
         w: 9 * 4 + 2,
         h: 9 * 4 + 2,
+        click() {
+            sprite_editor.color = Math.floor((mx() - this.x - 1) / 9) + (Math.floor((my() - this.y - 1) / 9) * 4)
+        },
         render() {
             rect(this.x, this.y, this.w, this.h, 0)
+
             for (let i = 0; i <= 15; i++) {
                 let x = this.x + 1 + (i % 4) * 9
                 let y = this.y + 1 + Math.floor(i / 4) * 9
                 rectfill(x, y, 9, 9, i)
             }
+
+            const border_x = this.x + (sprite_editor.color % 4) * 9
+            const border_y = this.y + Math.floor(sprite_editor.color / 4) * 9
+            rect(border_x, border_y, 11, 11, 6)
         }
     }
 
@@ -52,8 +75,44 @@ export function init() {
         y: 10,
         w: 64,
         h: 64,
+        mouse_down() {
+            const editor_px = {
+                x: Math.floor((mx() - this.x) / 8),
+                y: Math.floor((my() - this.y) / 8),
+            }
+            const spritesheet_px = {
+                x: (sprite_editor.sprite % 16) * 8 + editor_px.x,
+                y: Math.floor(sprite_editor.sprite / 16) * 8 + editor_px.y,
+            }
+
+            const addr = 0x0000 + Math.floor(spritesheet_px.x / 2) + spritesheet_px.y * 64
+            const current_value = vm.memory.raw[addr]
+
+            if (spritesheet_px.x % 2 == 0) {
+                // left = low
+                vm.memory.raw[addr] = (current_value & 0xF0) ^ sprite_editor.color
+            } else {
+                // right = hi
+                vm.memory.raw[addr] = (current_value & 0x0F) ^ (sprite_editor.color << 4)
+            }
+
+        },
         render() {
             rectfill(this.x, this.y, this.w, this.h, 0)
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const spritesheet_px = {
+                        x: (sprite_editor.sprite % 16) * 8 + col,
+                        y: Math.floor(sprite_editor.sprite / 16) * 8 + row,
+                    }
+                    const addr = 0x0000 + Math.floor(spritesheet_px.x / 2) + spritesheet_px.y * 64
+                    const color = col % 2 == 0
+                        ? vm.memory.raw[addr] & 0x0F         // left = low
+                        : (vm.memory.raw[addr] & 0xF0) >> 4  // right = hi
+                    rectfill(this.x + col * 8, this.y + row * 8, 8, 8, color)
+                }
+            }
         }
     }
 
@@ -76,16 +135,14 @@ export function init() {
             },
             render() {
                 // borders
-                color(this.hover ? 1 : 0)
+                color(this.hover ? 8 : 0)
                 line(this.x + 1, this.y, this.x + 3, this.y)
                 line(this.x + 1, this.y + 4, this.x + 3, this.y + 4)
                 line(this.x, this.y + 1, this.x, this.y + 3)
                 line(this.x + 4, this.y + 1, this.x + 4, this.y + 3)
 
                 // bg
-                let bg_color = (this.active)
-                    ? 8
-                    : 1
+                const bg_color = (this.active) ? 8 : 1
                 rectfill(this.x + 1, this.y + 1, 3, 3, bg_color)
 
                 // highlight
@@ -94,19 +151,28 @@ export function init() {
         }
     })
 
-    sprite_flags[1].active = true
-    console.log(sprite_flags[0].active)
+    const sprite_index = {
+        x: 80,
+        y: 80,
+        w: 13,
+        h: 7,
+        render() {
+            rectfill(this.x, this.y, this.w, this.h, 6)
+            const sprite_label = ("" + sprite_editor.sprite).padStart(3, "0")
+            print(sprite_label, this.x + 1, this.y + 1, 13)
+        }
+    }
 
     const drawing_tools = {}
     const spritesheet_tabs = {}
-    const sprite_index = {}
 
     stage.push(bt_sprite_editor)
     stage.push(spritesheet)
     stage.push(sprite)
     stage.push(color_picker)
+    stage.push(sprite_index)
 
-    for (let flag of sprite_flags) {
+    for (const flag of sprite_flags) {
         stage.push(flag)
     }
 }
@@ -131,8 +197,11 @@ export function loop() {
                     s.mouse_enter()
                 }
             }
-            if (mousep() && s.click) {
+            if (s.click && mousep()) {
                 s.click()
+            }
+            if (s.mouse_down && mouse()) {
+                s.mouse_down()
             }
         } else {
             const hover_list_index = hover_list.indexOf(s)
@@ -151,4 +220,6 @@ export function loop() {
     for (let s of stage) {
         s.render()
     }
+
+    // console.log(hex(vm.memory.raw[0]))
 }
