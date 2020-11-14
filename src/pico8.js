@@ -62,6 +62,7 @@ window.vm = {
     },
     addr: {
         spritesheet: 0x0000, // up to 0x0fff for top 64 sprites, then 0x1fff for 64 bottom sprites
+        sprite_flags: 0x3000, // up to 0x30ff
         palette: 0x5f00, // up to 0x5f0f
         screen_palette: 0x5f10, // up to 0x5f1f
         clip_left: 0x5f20,

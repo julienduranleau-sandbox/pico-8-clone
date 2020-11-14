@@ -542,11 +542,24 @@ export function cursor(x = 0, y = 0, color = null) {
  * 
  * @param {number} n The sprite number
  * @param {number} f The flag index (0-7). If omitted, a bit field of all flags is returned.
- * 
+ * @return {boolean}
  * @ref https://pico-8.fandom.com/wiki/Fget
  */
 export function fget(n, f = null) {
-    // TODO
+    const addr = vm.addr.sprite_flags + n
+
+    if (f === null) {
+        return peek(addr)
+    } else {
+        if (f == 0) return 1 == (peek(addr) & 0b00000001) >> 0
+        if (f == 1) return 1 == (peek(addr) & 0b00000010) >> 1
+        if (f == 2) return 1 == (peek(addr) & 0b00000100) >> 2
+        if (f == 3) return 1 == (peek(addr) & 0b00001000) >> 3
+        if (f == 4) return 1 == (peek(addr) & 0b00010000) >> 4
+        if (f == 5) return 1 == (peek(addr) & 0b00100000) >> 5
+        if (f == 6) return 1 == (peek(addr) & 0b01000000) >> 6
+        if (f == 7) return 1 == (peek(addr) & 0b10000000) >> 7
+    }
 }
 
 /**
@@ -565,13 +578,28 @@ export function fillp(pat) {
  * 
  * @param {number} n The sprite number.
  * @param {number} f The flag index (0-7). If omitted, a bit field of all flags is returned. 
- * @param {bool|number} v The value, either true or false if the flag index is specified, or the bit field of all flags if it is not. 
+ * @param {boolean|number} v The value, either true or false if the flag index is specified, or the bit field of all flags if it is not. 
  * 
  * 
  * @ref https://pico-8.fandom.com/wiki/Fset
  */
 export function fset(n, f = null, v = null) {
-    // TODO
+    const addr = vm.addr.sprite_flags + n
+
+    if (f === null) {
+        poke(addr, v)
+    } else {
+        const val = (v === true) ? 1 : 0
+        if (f == 0) poke(addr, (peek(addr) & 0b11111110) ^ (val << 0))
+        if (f == 1) poke(addr, (peek(addr) & 0b11111101) ^ (val << 1))
+        if (f == 2) poke(addr, (peek(addr) & 0b11111011) ^ (val << 2))
+        if (f == 3) poke(addr, (peek(addr) & 0b11110111) ^ (val << 3))
+        if (f == 4) poke(addr, (peek(addr) & 0b11101111) ^ (val << 4))
+        if (f == 5) poke(addr, (peek(addr) & 0b11011111) ^ (val << 5))
+        if (f == 6) poke(addr, (peek(addr) & 0b10111111) ^ (val << 6))
+        if (f == 7) poke(addr, (peek(addr) & 0b01111111) ^ (val << 7))
+
+    }
 }
 
 /**
@@ -651,7 +679,7 @@ export function pal(c0, c1, p = 0) {
  * When called with no parameters, resets the transparency of all colors to default
  * 
  * @param {number} color The number of the color to modify. 
- * @param {bool} transparent If true, treat this color as transparent. If false, treat this color as opaque. 
+ * @param {boolean} transparent If true, treat this color as transparent. If false, treat this color as opaque. 
  * 
  * @ref https://pico-8.fandom.com/wiki/Palt
  */
@@ -736,7 +764,7 @@ export function print(str, x = null, y = null, color = null) {
  * @param {number} x The x coordinate
  * @param {number} y The x coordinate
  * @param {number} color The color value. If not specified, uses the current color of the draw state.
- * @param {bool} check_transparency If true, colors defined as transparent will not be drawn
+ * @param {boolean} check_transparency If true, colors defined as transparent will not be drawn
  * 
  * @todo Optimize pixel batches to skip memory check (e.g. circlefill and rectfill calls)
  * 
@@ -852,8 +880,8 @@ export function sget(x, y) {
  * @param {number} y The y coordinate.
  * @param {number} w The width of the range, as a number of sprites. Non-integer values may be used to draw partial sprites.
  * @param {number} h The height of the range, as a number of sprites. Non-integer values may be used to draw partial sprites.
- * @param {bool} flip_x If true, the sprite is drawn inverted left to right.
- * @param {bool} flip_y If true, the sprite is drawn inverted top to bottom.
+ * @param {boolean} flip_x If true, the sprite is drawn inverted left to right.
+ * @param {boolean} flip_y If true, the sprite is drawn inverted top to bottom.
  * 
  * @ref https://pico-8.fandom.com/wiki/Spr
  */
@@ -909,8 +937,8 @@ export function sset(x, y, color = null) {
  * @param {number} dy The y coordinate of the upper left corner of the rectangle area of the screen.
  * @param {number} dw The width of the rectangle area of the screen. The default is to match the image width (sw).
  * @param {number} dh The height of the rectangle area of the screen. The default is to match the image width (sh).
- * @param {bool} flip_x If true, the sprite is drawn inverted left to right.
- * @param {bool} flip_y If true, the sprite is drawn inverted top to bottom.
+ * @param {boolean} flip_x If true, the sprite is drawn inverted left to right.
+ * @param {boolean} flip_y If true, the sprite is drawn inverted top to bottom.
  * 
  * @ref https://pico-8.fandom.com/wiki/Sspr
  */

@@ -5,6 +5,8 @@ const sprite_editor = {
     sprite: 0,
 }
 
+let last_save = Date.now()
+
 export function init() {
     const bt_sprite_editor = {
         x: 1,
@@ -109,7 +111,6 @@ export function init() {
             y: 70,
             w: 5,
             h: 5,
-            active: false,
             hover: false,
             mouse_enter() {
                 this.hover = true
@@ -118,9 +119,13 @@ export function init() {
                 this.hover = false
             },
             click() {
-                this.active = !this.active
+                const active = fget(sprite_editor.sprite, n)
+                fset(sprite_editor.sprite, n, !active)
+                console.log(fget(sprite_editor.sprite, n))
             },
             render() {
+                const active = fget(sprite_editor.sprite, n)
+
                 // borders
                 color(this.hover ? 8 : 0)
                 line(this.x + 1, this.y, this.x + 3, this.y)
@@ -129,11 +134,12 @@ export function init() {
                 line(this.x + 4, this.y + 1, this.x + 4, this.y + 3)
 
                 // bg
-                const bg_color = (this.active) ? 8 : 1
+                const bg_color = (active) ? (8 + n) : 1
                 rectfill(this.x + 1, this.y + 1, 3, 3, bg_color)
 
                 // highlight
-                pset(this.x + 3, this.y + 1, 13)
+                const highlight_color = (active) ? 7 : 6
+                pset(this.x + 3, this.y + 1, highlight_color)
             }
         }
     })
@@ -212,5 +218,8 @@ export function loop() {
 }
 
 function save_to_memory() {
-    localStorage.setItem('pico8-ram', vm.memory.toString());
+    if (Date.now() - last_save > 1000 * 2) {
+        last_save = Date.now()
+        localStorage.setItem('pico8-ram', vm.memory.toString());
+    }
 }
