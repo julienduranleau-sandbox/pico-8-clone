@@ -632,10 +632,17 @@ export function line(x0 = 0, y0 = 0, x1 = 0, y1 = 0, color) {
  * @ref https://pico-8.fandom.com/wiki/Pal
  */
 export function pal(c0, c1, p = 0) {
-    if (p === 0) {
-        vm.memory.raw[vm.memory.palette + c0] = c1
+    if (c0 === undefined || c1 === undefined) {
+        for (let color = 0; color <= 0xF; color++) {
+            vm.memory.raw[vm.memory.palette + color] = color
+        }
+        vm.memory.raw[vm.memory.palette] ^= 0x10
     } else {
-        vm.palette
+        if (p === 0) {
+            vm.memory.raw[vm.memory.palette + c0] = c1
+        } else {
+            vm.memory.raw[vm.memory.screen_palette + c0] = c1
+        }
     }
 }
 
@@ -729,6 +736,7 @@ export function print(str, x = null, y = null, color = null) {
  * @param {number} x The x coordinate
  * @param {number} y The x coordinate
  * @param {number} color The color value. If not specified, uses the current color of the draw state.
+ * @param {bool} check_transparency If true, colors defined as transparent will not be drawn
  * 
  * @todo Optimize pixel batches to skip memory check (e.g. circlefill and rectfill calls)
  * 
@@ -774,7 +782,7 @@ export function pset(x, y, color = null, check_transparency = false) {
 
     vm.memory.raw[addr] = (x % 2 == 0)
         ? (current & 0xF0) ^ remapped_color // low
-        : (color << 4) ^ (current & 0xF)    // high
+        : (remapped_color << 4) ^ (current & 0xF)    // high
 }
 
 /**
@@ -829,7 +837,7 @@ export function rectfill(x, y, w, h, color = null) {
  * @ref https://pico-8.fandom.com/wiki/Sget
  */
 export function sget(x, y) {
-    const addr = 0x0000 + Math.floor(x / 2) + y * 64
+    const addr = vm.memory.spritesheet + Math.floor(x / 2) + y * 64
 
     return x % 2 == 0
         ? vm.memory.raw[addr] & 0x0F         // low
@@ -879,7 +887,7 @@ export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
  * @ref https://pico-8.fandom.com/wiki/Sset
  */
 export function sset(x, y, color = null) {
-    const addr = 0x0000 + Math.floor(x / 2) + y * 64
+    const addr = vm.memory.spritesheet + Math.floor(x / 2) + y * 64
 
     if (x % 2 == 0) {
         // left = low

@@ -36,7 +36,7 @@ export function init() {
         },
         render() {
             // Copy spritesheet memory (with offset) to screen memory (with offset)
-            const spritesheet_addr = 0x0000 // + page
+            const spritesheet_addr = vm.memory.spritesheet // + page
             const screen_memory = 0x6000 + this.y * 64
             vm.memory.raw.copyWithin(screen_memory, spritesheet_addr, this.h * 64)
 

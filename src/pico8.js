@@ -17,6 +17,42 @@ canvas.style.imageRendering = "crisp-edges"
 
 let loaded_cart = null
 
+const rgb_colors = new Array(150).fill([0, 0, 0])
+// Original colors
+rgb_colors[0] = [0, 0, 0]           // black
+rgb_colors[1] = [29, 43, 83]        // dark-blue
+rgb_colors[2] = [126, 37, 83]       // dark-purple
+rgb_colors[3] = [0, 135, 81]        // dark-green
+rgb_colors[4] = [171, 82, 54]       // brown
+rgb_colors[5] = [95, 87, 79]        // dark-grey
+rgb_colors[6] = [194, 195, 199]     // light-grey
+rgb_colors[7] = [255, 241, 232]     // white
+rgb_colors[8] = [255, 0, 77]        // red
+rgb_colors[9] = [255, 163, 0]       // orange
+rgb_colors[10] = [255, 236, 39]     // yellow
+rgb_colors[11] = [0, 228, 54]       // green
+rgb_colors[12] = [41, 173, 255]     // blue
+rgb_colors[13] = [131, 118, 156]    // lavender
+rgb_colors[14] = [255, 119, 168]    // pink
+rgb_colors[15] = [255, 204, 170]    // light-peach 
+// "Hidden" colors
+rgb_colors[128] = [41, 24, 20] 	    // darkest-grey
+rgb_colors[129] = [17, 29, 53] 	    // darker-blue
+rgb_colors[130] = [66, 33, 54] 	    // darker-purple
+rgb_colors[131] = [18, 83, 89] 	    // blue-green
+rgb_colors[132] = [116, 47, 41] 	// dark-brown
+rgb_colors[133] = [73, 51, 59] 	    // darker-grey
+rgb_colors[134] = [162, 136, 121] 	// medium-grey
+rgb_colors[135] = [243, 239, 125] 	// light-yellow
+rgb_colors[136] = [190, 18, 80] 	// dark-red
+rgb_colors[137] = [255, 108, 36] 	// dark-orange
+rgb_colors[138] = [168, 231, 46] 	// light-green
+rgb_colors[139] = [0, 181, 67] 	    // medium-green
+rgb_colors[140] = [6, 90, 181] 	    // medium-blue
+rgb_colors[141] = [117, 70, 101] 	// mauve
+rgb_colors[142] = [255, 110, 89] 	// dark peach
+rgb_colors[143] = [255, 157, 129] 	// peach 
+
 window.vm = {
     in_game: false,
     screen_size: {
@@ -25,7 +61,6 @@ window.vm = {
         scale: 1,
     },
     memory: null,     // defined in boot
-    palette: null,    // defined in boot
     boot_time: null,  // defined in boot
     font: null,       // defined in boot
     mouse: {
@@ -83,7 +118,6 @@ async function boot(container_tag = null) {
     container_tag.appendChild(canvas)
 
     vm.memory = init_memory()
-    vm.palette = init_palette()
     vm.boot_time = Date.now()
     vm.font = await init_font()
 
@@ -120,7 +154,7 @@ function game_loop() {
         editor.loop()
     }
 
-    renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), vm.palette, peek(vm.memory.draw_mode))
+    renderer.render(vm.memory.raw.subarray(0x6000, 0x8000), get_gpu_palette(), peek(vm.memory.draw_mode))
 
     for (let key in vm.keys.pressed) {
         vm.keys.pressed[key] = false
@@ -144,6 +178,11 @@ async function keydown_handler(e) {
 
     if (keyp("Escape")) {
         vm.in_game = false
+        if (peek(vm.memory.screen_palette_reset) !== 1) {
+            for (let color = 0; color <= 0xF; color++) {
+                vm.memory.raw[vm.memory.screen_palette + color] = color
+            }
+        }
     }
 }
 
@@ -256,7 +295,9 @@ function init_memory() {
 
     const memory = {
         raw: raw,
+        spritesheet: 0x0000, // up to 0x0fff for top 64 sprites, then 0x1fff for 64 bottom sprites
         palette: 0x5f00, // up to 0x5f0f
+        screen_palette: 0x5f10, // up to 0x5f1f
         clip_left: 0x5f20,
         clip_top: 0x5f21,
         clip_right: 0x5f22,
@@ -267,6 +308,7 @@ function init_memory() {
         camera_x: 0x5f28, // and 0x5f29. 16 bit split in 2
         camera_y: 0x5f2a, // and 0x5f2b. 16 bit split in 2
         draw_mode: 0x5f2c,
+        screen_palette_reset: 0x5f2e,
     }
 
     raw[memory.color] = 0x6
@@ -276,54 +318,22 @@ function init_memory() {
 
     for (let color = 0; color <= 0xF; color++) {
         raw[memory.palette + color] = color
+        raw[memory.screen_palette + color] = color
     }
     raw[memory.palette] ^= 0x10 // set black transparent
-
-    // for (let i = 0x6000; i < 0x8000; i++) {
-    //     let low = Math.floor(Math.random() * 16)
-    //     let high = Math.floor(Math.random() * 16)
-    //     m[i] = (high << 4) ^ low
-    // }
 
     return memory
 }
 
-function init_palette() {
+function get_gpu_palette() {
     // https://pico-8.fandom.com/wiki/Palette
-
-    return Float32Array.from([
-        /* 0 */[0, 0, 0],           // black
-        /* 1 */[29, 43, 83],        // dark-blue
-        /* 2 */[126, 37, 83],       // dark-purple
-        /* 3 */[0, 135, 81],        // dark-green
-        /* 4 */[171, 82, 54],       // brown
-        /* 5 */[95, 87, 79],        // dark-grey
-        /* 6 */[194, 195, 199],     // light-grey
-        /* 7 */[255, 241, 232],     // white
-        /* 8 */[255, 0, 77],        // red
-        /* 9 */[255, 163, 0],       // orange
-        /* 10 */[255, 236, 39],     // yellow
-        /* 11 */[0, 228, 54],       // green
-        /* 12 */[41, 173, 255],     // blue
-        /* 13 */[131, 118, 156],    // lavender
-        /* 14 */[255, 119, 168],    // pink
-        /* 15 */[255, 204, 170],    // light-peach 
-
-        // /* 128 */[41, 24, 20], 	    // darkest-grey
-        // /* 129 */[17, 29, 53], 	    // darker-blue
-        // /* 130 */[66, 33, 54], 	    // darker-purple
-        // /* 131 */[18, 83, 89], 	    // blue-green
-        // /* 132 */[116, 47, 41], 	    // dark-brown
-        // /* 133 */[73, 51, 59], 	    // darker-grey
-        // /* 134 */[162, 136, 121], 	// medium-grey
-        // /* 135 */[243, 239, 125], 	// light-yellow
-        // /* 136 */[190, 18, 80], 	    // dark-red
-        // /* 137 */[255, 108, 36], 	// dark-orange
-        // /* 138 */[168, 231, 46], 	// light-green
-        // /* 139 */[0, 181, 67], 	    // medium-green
-        // /* 140 */[6, 90, 181], 	    // medium-blue
-        // /* 141 */[117, 70, 101], 	// mauve
-        // /* 142 */[255, 110, 89], 	// dark peach
-        // /* 143 */[255, 157, 129], 	// peach 
-    ].flat())
+    return Float32Array.from(
+        vm.memory.raw.slice(
+            vm.memory.screen_palette,
+            vm.memory.screen_palette + 16
+        ).reduce((arr, c) => {
+            arr.push(...rgb_colors[c]);
+            return arr
+        }, [])
+    )
 }
