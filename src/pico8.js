@@ -71,6 +71,8 @@ window.vm = {
     addr: {
         spritesheet: 0x0000, // up to 0x0fff for top 64 sprites, then 0x1fff for 64 bottom sprites
         sprite_flags: 0x3000, // up to 0x30ff
+        music: 0x3100, // up to 31ff
+        sfx: 0x3200, // up to 0x42ff
         palette: 0x5f00, // up to 0x5f0f
         screen_palette: 0x5f10, // up to 0x5f1f
         clip_left: 0x5f20,
@@ -337,21 +339,37 @@ function init_memory() {
     0x6000 	0x7fff 	Screen data(8k) 
     */
     const saved_memory = localStorage.getItem('pico8-ram')
+    const has_saved_memory = saved_memory !== null
 
-    const memory = saved_memory
+    const memory = has_saved_memory
         ? Uint8Array.from(saved_memory.split(','))
         : new Uint8Array(0x8000).fill(0)
 
+    // Default drawing color
     memory[vm.addr.color] = 0x6
 
+    // Clipping region
     memory[vm.addr.clip_right] = canvas.width
     memory[vm.addr.clip_bottom] = canvas.height
 
+    // Palette and screen palette
     for (let color = 0; color <= 0xF; color++) {
         memory[vm.addr.palette + color] = color
         memory[vm.addr.screen_palette + color] = color
     }
     memory[vm.addr.palette] ^= 0x10 // set black transparent
+
+    if (has_saved_memory === false) {
+        // Sound effects
+        for (let sfx = 0; sfx < 64; sfx++) {
+            for (let note = 0; note < 32; note++) {
+                const addr = vm.addr.sfx + sfx * 68 + note * 2
+                memory[addr] = 0b00000000 ^ (5 << 1) // volume default
+                //                   ^^^
+            }
+        }
+    }
+
 
     return memory
 }
