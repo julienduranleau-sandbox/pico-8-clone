@@ -168,7 +168,7 @@ export function poke(addr, val) {
  * @ref https://pico-8.fandom.com/wiki/Poke2
  */
 export function poke2(addr, val) {
-    vm.memory[addr] = val & 0xFF
+    vm.memory[addr] = val & 0x00FF
     vm.memory[addr + 1] = (val >> 8) & 0xFF
 }
 
@@ -569,8 +569,9 @@ export function fget(n, f = null) {
  * 
  * @ref https://pico-8.fandom.com/wiki/Fillp
  */
-export function fillp(pat) {
-    // TODO
+export function fillp(pattern, transparent = false) {
+    poke2(vm.addr.fill_pattern, pattern)
+    poke(vm.addr.fill_pattern_transparent, (transparent) ? 1 : 0)
 }
 
 /**
@@ -765,14 +766,30 @@ export function print(str, x = null, y = null, color = null) {
  * @param {number} y The x coordinate
  * @param {number} color The color value. If not specified, uses the current color of the draw state.
  * @param {boolean} check_transparency If true, colors defined as transparent will not be drawn
+ * @param {boolean} use_fill_pattern If true, the pixel will respect the pattern
  * 
  * @todo Optimize pixel batches to skip memory check (e.g. circlefill and rectfill calls)
  * 
  * @ref https://pico-8.fandom.com/wiki/Pset
  */
-export function pset(x, y, color = null, check_transparency = false) {
+export function pset(x, y, color = null, check_transparency = false, use_fill_pattern = true) {
     if (color === null) color = peek(vm.addr.color)
     else if (peek(vm.addr.color) != color) poke(vm.addr.color, color)
+
+    if (use_fill_pattern) {
+        const pattern = peek2(vm.addr.fill_pattern)
+        const pattern_transparent = peek(vm.addr.fill_pattern_transparent) === 1
+        const pattern_bit = pattern & (1 << ((x % 4) + (y % 4) * 4))
+        if (pattern_bit > 0) {
+            if (pattern_transparent) {
+                return
+            } else {
+                color = (color & 0xF0) >> 4
+            }
+        }
+    }
+
+    color &= 0xF
 
     const color_value = peek(vm.addr.palette + color)
     const remapped_color = color_value & 0x0F                   // low
@@ -900,7 +917,7 @@ export function spr(n, x, y, w = 1, h = 1, flip_x = false, flip_y = false) {
             let screen_y = y + row
             if (flip_x) screen_x = x + (draw_width - col - 1)
             if (flip_y) screen_y = y + (draw_height - row - 1)
-            pset(screen_x, screen_y, sget(sprite_offset.x + col, sprite_offset.y + row), true)
+            pset(screen_x, screen_y, sget(sprite_offset.x + col, sprite_offset.y + row), true, false)
         }
     }
 }
@@ -956,7 +973,7 @@ export function sspr(sx, sy, sw, sh, dx, dy, dw = null, dh = null, flip_x = fals
             const spritesheet_x = sx + Math.floor(sw / dw * col)
             const spritesheet_y = sy + Math.floor(sh / dh * row)
 
-            pset(screen_x, screen_y, sget(spritesheet_x, spritesheet_y), true)
+            pset(screen_x, screen_y, sget(spritesheet_x, spritesheet_y), true, false)
         }
     }
 }

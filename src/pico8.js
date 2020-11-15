@@ -15,6 +15,13 @@ canvas.style.imageRendering = "-webkit-crisp-edges"
 canvas.style.imageRendering = "pixelated"
 canvas.style.imageRendering = "crisp-edges"
 
+const VM_STATE = {
+    POWERED_OFF: 0,
+    BOOTED: 1,
+    IN_EDITOR: 2,
+    IN_GAME: 3,
+}
+
 let loaded_cart = null
 
 const rgb_colors = new Array(150).fill([0, 0, 0])
@@ -54,7 +61,7 @@ rgb_colors[142] = [255, 110, 89] 	// dark peach
 rgb_colors[143] = [255, 157, 129] 	// peach 
 
 window.vm = {
-    in_game: false,
+    state: VM_STATE.POWERED_OFF,
     screen_size: {
         width: canvas.width,
         height: canvas.height,
@@ -76,6 +83,8 @@ window.vm = {
         camera_y: 0x5f2a, // and 0x5f2b. 16 bit split in 2
         draw_mode: 0x5f2c,
         screen_palette_reset: 0x5f2e,
+        fill_pattern: 0x5f31, // and 0x5f32,
+        fill_pattern_transparent: 0x5f33,
     },
     memory: null,       // defined in boot
     boot_time: null,    // defined in boot
@@ -145,6 +154,7 @@ async function boot(container_tag = null) {
     window.addEventListener("mouseup", mouseup_handler)
 
     renderer.init(canvas).then(() => {
+        vm.state = VM_STATE.BOOTED
         editor.init()
         game_loop()
     })
@@ -157,17 +167,39 @@ async function load_cart(folder) {
         code_path,
         code: await import(`${code_path}?${Date.now()}`)
     }
+
+    if (loaded_cart.code._init) loaded_cart.code._init()
+
+    vm.state = VM_STATE.IN_GAME
 }
 
 async function reload_cart() {
+    vm.memory = init_memory()
     loaded_cart.code = await import(`${loaded_cart.code_path}?${Date.now()}`)
+    if (loaded_cart.code._init) loaded_cart.code._init()
+    vm.state = VM_STATE.IN_GAME
+}
+
+function display_editor() {
+    // Reset palette
+    if (peek(vm.addr.screen_palette_reset) !== 1) {
+        for (let color = 0; color <= 0xF; color++) {
+            vm.memory[vm.addr.screen_palette + color] = color
+        }
+    }
+
+    // Reset fill pattern
+    poke2(vm.addr.fill_pattern, 0)
+    poke(vm.addr.fill_pattern_transparent, 0)
+
+    vm.state = VM_STATE.IN_EDITOR
 }
 
 function game_loop() {
-    if (vm.in_game) {
+    if (vm.state === VM_STATE.IN_GAME) {
         if (loaded_cart.code._update) loaded_cart.code._update()
         if (loaded_cart.code._draw) loaded_cart.code._draw()
-    } else {
+    } else if (vm.state === VM_STATE.IN_EDITOR) {
         editor.loop()
     }
 
@@ -189,18 +221,11 @@ async function keydown_handler(e) {
     }
 
     if (keyp("R")) {
-        vm.memory = init_memory()
-        await reload_cart()
-        vm.in_game = true
+        reload_cart()
     }
 
     if (keyp("Escape")) {
-        vm.in_game = false
-        if (peek(vm.addr.screen_palette_reset) !== 1) {
-            for (let color = 0; color <= 0xF; color++) {
-                vm.memory[vm.addr.screen_palette + color] = color
-            }
-        }
+        display_editor()
     }
 }
 
