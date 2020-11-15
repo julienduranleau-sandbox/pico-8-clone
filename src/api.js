@@ -11,8 +11,19 @@ export function clamp(n, min, max) {
 /**
  * @new
  */
-export function hex(n) {
-    return n.toString(16)
+export function hex(n, len = null) {
+    let str = n.toString(16)
+    if (len) str = str.padStart(len, '0')
+    console.log(str)
+}
+
+/**
+ * @new
+ */
+export function bin(n, len = null) {
+    let str = n.toString(2)
+    if (len) str = str.padStart(len, '0')
+    console.log(str)
 }
 
 /**

@@ -339,7 +339,7 @@ function init_memory() {
     0x6000 	0x7fff 	Screen data(8k) 
     */
     const saved_memory = localStorage.getItem('pico8-ram')
-    const has_saved_memory = saved_memory !== null
+    const has_saved_memory = saved_memory !== null && window.location.hash.indexOf("reset") === -1
 
     const memory = has_saved_memory
         ? Uint8Array.from(saved_memory.split(','))
@@ -363,7 +363,7 @@ function init_memory() {
         // Sound effects
         for (let sfx = 0; sfx < 64; sfx++) {
             for (let note = 0; note < 32; note++) {
-                const addr = vm.addr.sfx + sfx * 68 + note * 2
+                const addr = vm.addr.sfx + sfx * 68 + note * 2 + 1
                 memory[addr] = 0b00000000 ^ (5 << 1) // volume default
                 //                   ^^^
             }

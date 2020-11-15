@@ -12,24 +12,52 @@
 
 */
 
-export function play() {
-    const audio_ctx = new AudioContext()
-    const compressor = audio_ctx.createDynamicsCompressor()
-    const osc = audio_ctx.createOscillator()
-    const gainNode = audio_ctx.createGain()
-    osc.type = "sine"
-    osc.frequency.setValueAtTime(440, audio_ctx.currentTime)
-    console.log(audio_ctx.currentTime)
+const octave0_frequencies = [16.35, 17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87]
+const BASE_OCTAVE = 1
+const MAX_VOLUME = 0.2
 
-    // osc > gain > compressor > out
-    osc.connect(gainNode)
-    gainNode.connect(compressor)
-    compressor.connect(audio_ctx.destination);
+const audio_ctx = new AudioContext()
+const compressor = audio_ctx.createDynamicsCompressor()
+const osc = audio_ctx.createOscillator()
+const gainNode = audio_ctx.createGain()
+osc.type = "triangle"
 
-    gainNode.gain.setValueAtTime(0.00001, audio_ctx.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(1.0, audio_ctx.currentTime + 0.1)
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, audio_ctx.currentTime + 1.0)
-    osc.start()
+// osc > gain > compressor > out
+osc.connect(gainNode)
+gainNode.connect(compressor)
+compressor.connect(audio_ctx.destination)
+osc.start()
+
+gainNode.gain.setValueAtTime(0.00001, audio_ctx.currentTime)
+
+// 
+
+export function play(sfx_index) {
+    const note_speed = 24 / 128
+
+    for (let i = 0; i < 32; i++) {
+        const addr = vm.addr.sfx + sfx_index * 68 + i * 2
+        const note = peek2(addr)
+        const volume = Math.max(1 / 1000, (note & 0b00001110_00000000) >> 9)
+        const pitch_number = note & 0b00000000_00111111
+        const base_freq = octave0_frequencies[pitch_number % octave0_frequencies.length]
+        const octave = BASE_OCTAVE + Math.floor(pitch_number / octave0_frequencies.length)
+        const frequency = base_freq * Math.max(1, (2 ** octave))
+
+        const note_time_offset = audio_ctx.currentTime + i * note_speed
+        osc.frequency.setValueAtTime(frequency, note_time_offset)
+
+        gainNode.gain.exponentialRampToValueAtTime((volume / 7) * MAX_VOLUME, note_time_offset)
+        // gainNode.gain.setValueAtTime((volume / 7) * MAX_VOLUME, note_time_offset)
+    }
+
+    gainNode.gain.exponentialRampToValueAtTime(.000001, audio_ctx.currentTime + 33 * note_speed)
+
+
+    // gainNode.gain.setValueAtTime(0.00001, audio_ctx.currentTime)
+    // gainNode.gain.exponentialRampToValueAtTime(1.0, audio_ctx.currentTime + 0.1)
+    // gainNode.gain.exponentialRampToValueAtTime(0.00001, audio_ctx.currentTime + 1.0)
+
 
     // Set Frequency
     // osc.frequency.setValueAtTime(val, audio_ctx.currentTime + when)

@@ -2,7 +2,7 @@ import * as audio from './audio.js'
 
 export const stage = []
 
-let sound_index = 0
+let sfx_index = 0
 /*
 Each sound effect is 68 bytes 
     - 2 bytes for each of 32 notes 
@@ -40,14 +40,14 @@ export function init() {
             y: 30,
             w: 4,       // only 2 wide drawing
             h: 64,
-            mem_addr: vm.addr.sfx + sound_index * 68 + n * 2,
+            mem_addr: vm.addr.sfx + sfx_index * 68 + n * 2,
             mouse_down() {
                 const pitch = this.y + this.h - my() - 1
-                poke(this.mem_addr + 1, (peek(this.mem_addr + 1) & 0b11000000) ^ pitch)
+                poke(this.mem_addr, (peek(this.mem_addr) & 0b11000000) ^ pitch)
             },
             render() {
-                const pitch = peek(this.mem_addr + 1) & 0b00111111
-                const volume = (peek(this.mem_addr) & 0b00001110) >> 1
+                const pitch = peek(this.mem_addr) & 0b00111111
+                const volume = (peek(this.mem_addr + 1) & 0b00001110) >> 1
 
                 if (pitch > 0 && volume > 0) {
                     rectfill(this.x + 1, this.y + this.h - pitch, 2, pitch, 1)
@@ -63,13 +63,13 @@ export function init() {
             y: 101,
             w: 4,       // only 2 wide drawing
             h: 18,
-            mem_addr: vm.addr.sfx + sound_index * 68 + n * 2,
+            mem_addr: vm.addr.sfx + sfx_index * 68 + n * 2,
             mouse_down() {
                 const volume = Math.max(0, Math.round((this.y + 14 - my()) / 2))
-                poke(this.mem_addr, (peek(this.mem_addr) & 0b11110001) ^ (volume << 1))
+                poke(this.mem_addr + 1, (peek(this.mem_addr + 1) & 0b11110001) ^ (volume << 1))
             },
             render() {
-                const volume = (peek(this.mem_addr) & 0b00001110) >> 1
+                const volume = (peek(this.mem_addr + 1) & 0b00001110) >> 1
                 if (volume > 0) {
                     rectfill(this.x, this.y + this.h - (volume * 2) - 3, 3, 2, 14)
                 }
@@ -81,7 +81,7 @@ export function init() {
         playing: false,
         render() {
             if (keyp(" ")) {
-                audio.play(sound_index)
+                audio.play(sfx_index)
             }
         }
     }
