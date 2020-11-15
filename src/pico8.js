@@ -17,9 +17,10 @@ canvas.style.imageRendering = "crisp-edges"
 
 const VM_STATE = {
     POWERED_OFF: 0,
-    BOOTED: 1,
-    IN_EDITOR: 2,
-    IN_GAME: 3,
+    BOOTING: 1,
+    BOOTED: 2,
+    IN_EDITOR: 3,
+    IN_GAME: 4,
 }
 
 let loaded_cart = null
@@ -133,6 +134,7 @@ function scale(n) {
 }
 
 async function boot(container_tag = null) {
+    vm.state = VM_STATE.BOOTING
     if (!container_tag) {
         container_tag = document.body
     }
@@ -154,8 +156,12 @@ async function boot(container_tag = null) {
     window.addEventListener("mouseup", mouseup_handler)
 
     renderer.init(canvas).then(() => {
-        vm.state = VM_STATE.BOOTED
+        if (vm.state === VM_STATE.BOOTING) {
+            vm.state = VM_STATE.BOOTED
+        }
+        cls()
         editor.init()
+        display_editor()
         game_loop()
     })
 }
